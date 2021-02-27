@@ -362,7 +362,7 @@ void BmpImage::render(SDL_Renderer *renderer, int windowWidth, int windowHeight)
                 uint8_t paletteI{
                     uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
 
-                if (paletteI > m_numOfPaletteColors)
+                if (paletteI >= m_numOfPaletteColors)
                 {
                     std::cerr << "Invalid color index while rendering 4-bit image: " << (int)paletteI << '\n';
                     return;
