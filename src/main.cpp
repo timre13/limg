@@ -65,6 +65,8 @@ int main(int argc, char** argv)
 
     bool isRunning{true};
     bool isRedrawNeeded{};
+    bool isFullscreen{};
+
     while (isRunning)
     {
         SDL_Event event;
@@ -77,12 +79,20 @@ int main(int argc, char** argv)
                 break;
 
             case SDL_KEYUP:
-                if (event.key.keysym.sym == SDLK_ESCAPE)
+                switch (event.key.keysym.sym)
+                {
+                case SDLK_ESCAPE:
                     isRunning = false;
+                    break;
+
+                case SDLK_f:
+                    isFullscreen = !isFullscreen;
+                    SDL_SetWindowFullscreen(window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+                    break;
+                }
                 break;
 
             case SDL_WINDOWEVENT:
-            {
                 switch (event.window.event)
                 {
                 case SDL_WINDOWEVENT_SHOWN:
@@ -95,7 +105,6 @@ int main(int argc, char** argv)
                     break;
                 }
                 break;
-            }
             }
         }
         if (!isRunning)
