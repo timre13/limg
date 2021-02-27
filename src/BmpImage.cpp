@@ -293,6 +293,62 @@ void BmpImage::render(SDL_Renderer *renderer, int windowWidth, int windowHeight)
 
     switch (m_bitsPerPixel)
     {
+    case 1:
+    {
+        uint_fast32_t xPos{};
+        uint_fast32_t yPos{m_bitmapHeightPx - 1};
+
+        for (uint_fast32_t i{}; yPos != -1; ++i)
+        {
+            if (m_numOfPaletteColors) // Paletted
+            {
+                uint8_t paletteI{m_buffer[m_bitmapOffset + i / 8]};
+                paletteI &= 1 << (7 - i % 8);
+                paletteI >>= 7 - i % 8;
+
+                if (paletteI >= m_numOfPaletteColors)
+                {
+                    std::cerr << "Invalid color index while rendering 1-bit image: " << (int)paletteI << '\n';
+                    return;
+                }
+
+                SDL_SetRenderDrawColor(renderer,
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
+                        255
+                );
+            }
+            else // No palette, error (?)
+            {
+                std::cerr << "1-bit image without a palette" << '\n';
+                return;
+            }
+            SDL_RenderDrawPoint(renderer, xPos, yPos);
+
+            // If the last pixel of the line
+            if (xPos == m_bitmapWidthPx - 1)
+            {
+                /*
+                 * Add padding to the offset:
+                 * Every line needs to be padded to a multiple of 4 with additional bytes at the end.
+                 */
+                if (m_bitmapWidthPx % 4)
+                    // FIXME: This is wrong
+                    i += 4 - m_bitmapWidthPx % 4;
+
+                xPos = 0;
+                --yPos;
+            }
+            else
+            {
+                ++xPos;
+            }
+        }
+
+        break;
+    } // End of case 1
+
     case 4:
     {
         uint_fast32_t xPos{};
