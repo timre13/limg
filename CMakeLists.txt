@@ -1,0 +1,25 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+
+SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD_REQUIRED true)
+
+SET(CMAKE_CXX_FLAGS "-g")
+
+PROJECT(ImageLoader VERSION 1.0)
+
+LINK_LIBRARIES(SDL2)
+
+ADD_EXECUTABLE(image_loader
+    src/main.cpp
+    src/Image.h
+    src/Image.cpp
+    src/BmpImage.h
+    src/BmpImage.cpp
+    src/bitmagic.h
+)
+
+ADD_CUSTOM_TARGET(run
+    DEPENDS image_loader
+    COMMAND image_loader
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
