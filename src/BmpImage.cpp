@@ -375,8 +375,19 @@ void BmpImage::render(SDL_Renderer *renderer, int windowWidth, int windowHeight)
                         255
                 );
             }
-            else // RGB?
+            else // RGB
             {
+                uint8_t color{
+                    uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
+
+                // FIXME: Weird colors
+                SDL_SetRenderDrawColor(renderer,
+                        ((color & 0b00001000) >> 3) * 255,
+                        ((color & 0b00000100) >> 2) * 255,
+                        ((color & 0b00000010) >> 1) * 255,
+                        //((color & 0b00000001) >> 0) * 255,
+                        255
+                );
             }
             SDL_RenderDrawPoint(renderer, xPos, yPos);
 
