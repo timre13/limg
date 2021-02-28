@@ -5,11 +5,11 @@ SET(CMAKE_CXX_STANDARD_REQUIRED true)
 
 SET(CMAKE_CXX_FLAGS "-g")
 
-PROJECT(ImageLoader VERSION 1.0)
+PROJECT(LIMG VERSION 1.0)
 
 LINK_LIBRARIES(SDL2)
 
-ADD_EXECUTABLE(image_loader
+ADD_EXECUTABLE(limg
     src/main.cpp
     src/Image.h
     src/Image.cpp
@@ -19,7 +19,7 @@ ADD_EXECUTABLE(image_loader
 )
 
 ADD_CUSTOM_TARGET(run
-    DEPENDS image_loader
-    COMMAND image_loader
+    DEPENDS limg
+    COMMAND limg
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
