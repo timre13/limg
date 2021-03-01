@@ -290,7 +290,7 @@ int BmpImage::open(const std::string &filepath)
     return 0;
 }
 
-void BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -308,7 +308,7 @@ void BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int win
                 if (paletteI >= m_numOfPaletteColors)
                 {
                     std::cerr << "Invalid color index while rendering 1-bit image: " << (int)paletteI << '\n';
-                    return;
+                    return 1;
                 }
 
                 SDL_SetRenderDrawColor(renderer,
@@ -321,7 +321,7 @@ void BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int win
             else // No palette, error (?)
             {
                 std::cerr << "1-bit image without a palette" << '\n';
-                return;
+                return 1;
             }
             SDL_RenderDrawPoint(renderer, xPos, yPos);
         }
@@ -345,9 +345,11 @@ void BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int win
             ++xPos;
         }
     }
+
+    return 0;
 }
 
-void BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -365,7 +367,7 @@ void BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int win
                 if (paletteI >= m_numOfPaletteColors)
                 {
                     std::cerr << "Invalid color index while rendering 4-bit image: " << (int)paletteI << '\n';
-                    return;
+                    return 1;
                 }
 
                 SDL_SetRenderDrawColor(renderer,
@@ -412,9 +414,11 @@ void BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int win
             ++xPos;
         }
     }
+
+    return 0;
 }
 
-void BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
 {
    uint_fast32_t xPos{};
    uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -431,7 +435,7 @@ void BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int win
                     std::cerr <<
                         "Invalid color index while rendering 8-bit image: " << (int)paletteI <<
                         ", palette only has " << m_numOfPaletteColors << " entries" << '\n';
-                    return;
+                    return 1;
                 }
 
                 SDL_SetRenderDrawColor(renderer,
@@ -473,9 +477,11 @@ void BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int win
             ++xPos;
         }
     }
+
+    return 0;
 }
 
-void BmpImage::_render16BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render16BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -527,9 +533,11 @@ void BmpImage::_render16BitImage(SDL_Renderer *renderer, int windowWidth, int wi
             ++xPos;
         }
     }
+
+    return 0;
 }
 
-void BmpImage::_render24BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render24BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -566,41 +574,26 @@ void BmpImage::_render24BitImage(SDL_Renderer *renderer, int windowWidth, int wi
             ++xPos;
         }
     }
+
+    return 0;
 }
 
-void BmpImage::render(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::render(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
 {
     if (!m_isInitialized)
     {
-        return;
+        return 1;
     }
 
     switch (m_bitsPerPixel)
     {
-    case 1:
-        _render1BitImage(renderer, windowWidth, windowHeight);
-        break;
-
-    case 4:
-        _render4BitImage(renderer, windowWidth, windowHeight);
-        break;
-
-    case 8:
-        _render8BitImage(renderer, windowWidth, windowHeight);
-        break;
-
-    case 16:
-        _render16BitImage(renderer, windowWidth, windowHeight);
-        break;
-
-    case 24:
-        _render24BitImage(renderer, windowWidth, windowHeight);
-        break;
-
-    default:
-        std::cerr << "Unimplemented color depth" << '\n';
-        break;
-    } // End of switch
+    case  1: return  _render1BitImage(renderer, windowWidth, windowHeight);
+    case  4: return  _render4BitImage(renderer, windowWidth, windowHeight);
+    case  8: return  _render8BitImage(renderer, windowWidth, windowHeight);
+    case 16: return _render16BitImage(renderer, windowWidth, windowHeight);
+    case 24: return _render24BitImage(renderer, windowWidth, windowHeight);
+    default: std::cerr << "Unimplemented color depth" << '\n'; return 1;
+    }
 }
 
 BmpImage::~BmpImage()

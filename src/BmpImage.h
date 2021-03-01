@@ -63,15 +63,15 @@ private:
     uint32_t m_numOfPaletteColors{};
     unsigned int m_rowSize{};
 
-    void _render1BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
-    void _render4BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
-    void _render8BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
-    void _render16BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
-    void _render24BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
+    int _render1BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
+    int _render4BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
+    int _render8BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
+    int _render16BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
+    int _render24BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
 
 public:
     virtual int open(const std::string &filepath) override;
-    virtual void render(SDL_Renderer *renderer, int windowWidth, int windowHeight) const override;
+    virtual int render(SDL_Renderer *renderer, int windowWidth, int windowHeight) const override;
 
     inline uint32_t getWidthPx() const { return m_bitmapWidthPx; }
     inline uint32_t getHeightPx() const { return m_bitmapHeightPx; }
