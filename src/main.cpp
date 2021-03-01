@@ -46,10 +46,11 @@ int main(int argc, char** argv)
     const bool isTestingMode{argc > 2 && std::strcmp(argv[1], "--test")};
 
     auto image{std::make_unique<BmpImage>()};
-    if (image->open(argv[1]))
+    int openStatus{image->open(argv[1])};
+    if (openStatus)
     {
         std::cerr << "Failed to open image, exiting" << '\n';
-        return 1;
+        return openStatus;
     }
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -72,9 +73,9 @@ int main(int argc, char** argv)
         SDL_GetWindowSize(window, &windowWidth, &windowHeight);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
-        image->render(renderer, windowWidth, windowHeight);
+        int renderStatus{image->render(renderer, windowWidth, windowHeight)};
         SDL_Quit();
-        return 0;
+        return renderStatus;
     }
 
     bool isRunning{true};
@@ -130,7 +131,12 @@ int main(int argc, char** argv)
             SDL_GetWindowSize(window, &windowWidth, &windowHeight);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderClear(renderer);
-            image->render(renderer, windowWidth, windowHeight);
+            int renderStatus{image->render(renderer, windowWidth, windowHeight)};
+            if (renderStatus)
+            {
+                SDL_Quit();
+                return renderStatus;
+            }
             isRedrawNeeded = false;
         }
 
