@@ -176,6 +176,12 @@ int BmpImage::open(const std::string &filepath)
             std::cerr << "Negative width" << '\n';
             return 1;
         }
+        uint32_t widthTimesHeight{m_bitmapWidthPx * m_bitmapHeightPx};
+        if (widthTimesHeight / m_bitmapWidthPx != m_bitmapHeightPx)
+        {
+            std::cerr << "Width times height overflows, this is not safe" << '\n';
+            return 1;
+        }
 
         uint16_t colorPlaneNum{};
         std::memcpy(&colorPlaneNum, m_buffer+BMP_BITMAPINFOHEADER_CPLANE_FIELD_OFFS, 2);
