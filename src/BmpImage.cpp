@@ -163,13 +163,17 @@ int BmpImage::open(const std::string &filepath)
     {
         std::memcpy(&m_bitmapWidthPx,  m_buffer+BMP_BITMAPINFOHEADER_WIDTH_FIELD_OFFS, 4);
         std::memcpy(&m_bitmapHeightPx, m_buffer+BMP_BITMAPINFOHEADER_HEIGHT_FIELD_OFFS, 4);
-        m_bitmapWidthPx = std::abs((int32_t)m_bitmapWidthPx);
         m_bitmapHeightPx = std::abs((int32_t)m_bitmapHeightPx);
         std::cout << std::dec;
         std::cout << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << " px" << '\n';
         if (m_bitmapWidthPx == 0 || m_bitmapHeightPx == 0)
         {
             std::cerr << "Zero width/height" << '\n';
+            return 1;
+        }
+        if ((int32_t)m_bitmapWidthPx < 0)
+        {
+            std::cerr << "Negative width" << '\n';
             return 1;
         }
 
