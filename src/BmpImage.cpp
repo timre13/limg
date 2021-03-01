@@ -263,7 +263,7 @@ int BmpImage::open(const std::string &filepath)
         std::cout << std::dec << "Number of colors in palette: " <<
                 m_numOfPaletteColors << std::hex << '\n';
 
-        if ((m_bitsPerPixel == 1 && m_numOfPaletteColors > 2) ||
+        if ((m_bitsPerPixel == 1 && (m_numOfPaletteColors > 2 || m_numOfPaletteColors == 0)) ||
             (m_bitsPerPixel == 4 && m_numOfPaletteColors > 16) ||
             (m_bitsPerPixel == 8 && m_numOfPaletteColors > 256) ||
             (m_bitsPerPixel == 16 && m_numOfPaletteColors > 65536) ||
