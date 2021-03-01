@@ -297,31 +297,34 @@ void BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int win
 
     for (uint_fast32_t i{}; yPos != -1; ++i)
     {
-        if (m_numOfPaletteColors) // Paletted
+        if (xPos < windowWidth && yPos < windowHeight)
         {
-            uint8_t paletteI{m_buffer[m_bitmapOffset + i / 8]};
-            paletteI &= 1 << (7 - i % 8);
-            paletteI >>= 7 - i % 8;
-
-            if (paletteI >= m_numOfPaletteColors)
+            if (m_numOfPaletteColors) // Paletted
             {
-                std::cerr << "Invalid color index while rendering 1-bit image: " << (int)paletteI << '\n';
+                uint8_t paletteI{m_buffer[m_bitmapOffset + i / 8]};
+                paletteI &= 1 << (7 - i % 8);
+                paletteI >>= 7 - i % 8;
+
+                if (paletteI >= m_numOfPaletteColors)
+                {
+                    std::cerr << "Invalid color index while rendering 1-bit image: " << (int)paletteI << '\n';
+                    return;
+                }
+
+                SDL_SetRenderDrawColor(renderer,
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
+                        255
+                );
+            }
+            else // No palette, error (?)
+            {
+                std::cerr << "1-bit image without a palette" << '\n';
                 return;
             }
-
-            SDL_SetRenderDrawColor(renderer,
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
-                    255
-            );
+            SDL_RenderDrawPoint(renderer, xPos, yPos);
         }
-        else // No palette, error (?)
-        {
-            std::cerr << "1-bit image without a palette" << '\n';
-            return;
-        }
-        SDL_RenderDrawPoint(renderer, xPos, yPos);
 
         // If the last pixel of the line
         if (xPos == m_bitmapWidthPx - 1)
@@ -351,40 +354,43 @@ void BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int win
 
     for (uint_fast32_t i{}; yPos != -1; ++i)
     {
-        if (m_numOfPaletteColors) // Paletted
+        if (xPos < windowWidth && yPos < windowHeight)
         {
-            // Use the more significant nibble if the number is even, use the another otherwise
-            uint8_t paletteI{
-                uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
-
-            if (paletteI >= m_numOfPaletteColors)
+            if (m_numOfPaletteColors) // Paletted
             {
-                std::cerr << "Invalid color index while rendering 4-bit image: " << (int)paletteI << '\n';
-                return;
+                // Use the more significant nibble if the number is even, use the another otherwise
+                uint8_t paletteI{
+                    uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
+
+                if (paletteI >= m_numOfPaletteColors)
+                {
+                    std::cerr << "Invalid color index while rendering 4-bit image: " << (int)paletteI << '\n';
+                    return;
+                }
+
+                SDL_SetRenderDrawColor(renderer,
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
+                        255
+                );
             }
+            else // RGB
+            {
+                uint8_t color{
+                    uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
 
-            SDL_SetRenderDrawColor(renderer,
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
-                    255
-            );
+                // FIXME: Weird colors
+                SDL_SetRenderDrawColor(renderer,
+                        ((color & 0b00001000) >> 3) * 255,
+                        ((color & 0b00000100) >> 2) * 255,
+                        ((color & 0b00000010) >> 1) * 255,
+                        //((color & 0b00000001) >> 0) * 255,
+                        255
+                );
+            }
+            SDL_RenderDrawPoint(renderer, xPos, yPos);
         }
-        else // RGB
-        {
-            uint8_t color{
-                uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
-
-            // FIXME: Weird colors
-            SDL_SetRenderDrawColor(renderer,
-                    ((color & 0b00001000) >> 3) * 255,
-                    ((color & 0b00000100) >> 2) * 255,
-                    ((color & 0b00000010) >> 1) * 255,
-                    //((color & 0b00000001) >> 0) * 255,
-                    255
-            );
-        }
-        SDL_RenderDrawPoint(renderer, xPos, yPos);
 
         // If the last pixel of the line
         if (xPos == m_bitmapWidthPx - 1)
@@ -413,60 +419,60 @@ void BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int win
    uint_fast32_t xPos{};
    uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
-   for (uint_fast32_t i{}; yPos != -1; ++i)
-   {
-       if (xPos < windowWidth && yPos < windowHeight)
-       {
-           if (m_numOfPaletteColors) // Paletted image
-           {
-               uint8_t paletteI{m_buffer[m_bitmapOffset + i]};
-               if (paletteI >= m_numOfPaletteColors)
-               {
-                   std::cerr <<
-                       "Invalid color index while rendering 8-bit image: " << (int)paletteI <<
-                       ", palette only has " << m_numOfPaletteColors << " entries" << '\n';
-                   return;
-               }
+    for (uint_fast32_t i{}; yPos != -1; ++i)
+    {
+        if (xPos < windowWidth && yPos < windowHeight)
+        {
+            if (m_numOfPaletteColors) // Paletted image
+            {
+                uint8_t paletteI{m_buffer[m_bitmapOffset + i]};
+                if (paletteI >= m_numOfPaletteColors)
+                {
+                    std::cerr <<
+                        "Invalid color index while rendering 8-bit image: " << (int)paletteI <<
+                        ", palette only has " << m_numOfPaletteColors << " entries" << '\n';
+                    return;
+                }
 
-               SDL_SetRenderDrawColor(renderer,
-                       m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
-                       m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
-                       m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
-                       255
-               );
-           }
-           else // RGB?
-           {
-               // FIXME: Weird colors
-               SDL_SetRenderDrawColor(renderer,
-                       ((m_buffer[m_bitmapOffset + i] & 0b00001100) >> 2) / 3.0 * 255,
-                       ((m_buffer[m_bitmapOffset + i] & 0b00000011) >> 0) / 3.0 * 255,
-                       ((m_buffer[m_bitmapOffset + i] & 0b00110000) >> 4) / 3.0 * 255,
-                       //((m_buffer[m_bitmapOffset + i] & 0b11000000) >> 6) / 3.0 * 255,
-                       255
-               );
-           }
-           SDL_RenderDrawPoint(renderer, xPos, yPos);
-       }
+                SDL_SetRenderDrawColor(renderer,
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
+                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
+                        255
+                );
+            }
+            else // RGB?
+            {
+                // FIXME: Weird colors
+                SDL_SetRenderDrawColor(renderer,
+                        ((m_buffer[m_bitmapOffset + i] & 0b00001100) >> 2) / 3.0 * 255,
+                        ((m_buffer[m_bitmapOffset + i] & 0b00000011) >> 0) / 3.0 * 255,
+                        ((m_buffer[m_bitmapOffset + i] & 0b00110000) >> 4) / 3.0 * 255,
+                        //((m_buffer[m_bitmapOffset + i] & 0b11000000) >> 6) / 3.0 * 255,
+                        255
+                );
+            }
+            SDL_RenderDrawPoint(renderer, xPos, yPos);
+        }
 
-       // If the last pixel of the line
-       if (xPos == m_bitmapWidthPx - 1)
-       {
-           /*
-            * Add padding to the offset:
-            * Every line needs to be padded to a multiple of 4 with additional bytes at the end.
-            */
-           if (m_bitmapWidthPx % 4)
-               i += 4 - m_bitmapWidthPx %  4;
+        // If the last pixel of the line
+        if (xPos == m_bitmapWidthPx - 1)
+        {
+            /*
+             * Add padding to the offset:
+             * Every line needs to be padded to a multiple of 4 with additional bytes at the end.
+             */
+            if (m_bitmapWidthPx % 4)
+                i += 4 - m_bitmapWidthPx %  4;
 
-           xPos = 0;
-           --yPos;
-       }
-       else
-       {
-           ++xPos;
-       }
-   }
+            xPos = 0;
+            --yPos;
+        }
+        else
+        {
+            ++xPos;
+        }
+    }
 }
 
 void BmpImage::_render16BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
