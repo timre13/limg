@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
 #include <memory>
+#include <cstring>
 
 #define INITIAL_WINDOW_WIDTH  10
 #define INITIAL_WINDOW_HEIGHT 10
@@ -41,6 +42,8 @@ int main(int argc, char** argv)
 {
     if (argc < 2)
         return 1;
+
+    const bool isTestingMode{argc > 2 && std::strcmp(argv[1], "--test")};
 
     auto image{std::make_unique<BmpImage>()};
     if (image->open(argv[1]))
@@ -62,6 +65,17 @@ int main(int argc, char** argv)
     SDL_RenderPresent(renderer);
     SDL_SetWindowMinimumSize(window, 10, 10);
     SDL_SetWindowMaximumSize(window, 2000, 2000);
+
+    if (isTestingMode)
+    {
+        int windowWidth, windowHeight;
+        SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        image->render(renderer, windowWidth, windowHeight);
+        SDL_Quit();
+        return 0;
+    }
 
     bool isRunning{true};
     bool isRedrawNeeded{};
