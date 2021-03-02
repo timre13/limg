@@ -63,6 +63,9 @@ private:
     uint32_t m_numOfPaletteColors{};
     unsigned int m_rowSize{};
 
+    int _readBitmapCoreHeader();
+    int _readBitmapInfoHeader();
+
     int _render1BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
     int _render4BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
     int _render8BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;

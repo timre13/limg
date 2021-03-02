@@ -51,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BMP_BITMAPCOREHEADER_SIZE       12
     #define BMP_BITMAPCOREHEADER_WIDTH_FIELD_OFFS       0x12
     #define BMP_BITMAPCOREHEADER_HEIGHT_FIELD_OFFS      0x14
+    #define BMP_BITMAPCOREHEADER_CPLANE_FIELD_OFFS      0x16
+    #define BMP_BITMAPCOREHEADER_CDEPTH_FIELD_OFFS      0x18
 #define BMP_OS22XBITMAPHEADER_SIZE_VAR1 64
 #define BMP_OS22XBITMAPHEADER_SIZE_VAR2 16
 #define BMP_BITMAPINFOHEADER_SIZE       40
@@ -100,6 +102,190 @@ static std::string dibHeaderSizeToName(uint32_t size)
     case BMP_BITMAPV5HEADER_SIZE:         return "BITMAPV5HEADER";
     default:                              return "Unknown/Invalid";
     }
+}
+
+int BmpImage::_readBitmapCoreHeader()
+{
+    std::memcpy(&m_bitmapWidthPx,  m_buffer+BMP_BITMAPCOREHEADER_WIDTH_FIELD_OFFS, 2);
+    std::memcpy(&m_bitmapHeightPx, m_buffer+BMP_BITMAPCOREHEADER_HEIGHT_FIELD_OFFS, 2);
+    m_bitmapHeightPx = std::abs((int32_t)m_bitmapHeightPx);
+    std::cout << std::dec;
+    std::cout << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << " px" << '\n';
+    if (m_bitmapWidthPx == 0 || m_bitmapHeightPx == 0)
+    {
+        std::cerr << "Zero width/height" << '\n';
+        return 1;
+    }
+    if ((int32_t)m_bitmapWidthPx < 0)
+    {
+        std::cerr << "Negative width" << '\n';
+        return 1;
+    }
+    uint32_t widthTimesHeight{m_bitmapWidthPx * m_bitmapHeightPx};
+    if (widthTimesHeight / m_bitmapWidthPx != m_bitmapHeightPx)
+    {
+        std::cerr << "Width times height overflows, this is not safe" << '\n';
+        return 1;
+    }
+
+    uint16_t colorPlaneNum{};
+    std::memcpy(&colorPlaneNum, m_buffer+BMP_BITMAPCOREHEADER_CPLANE_FIELD_OFFS, 2);
+    if (colorPlaneNum != 1)
+    {
+        std::cerr << "Color plane number is invalid (not 1)" << '\n';
+        return 1;
+    }
+    std::memcpy(&m_bitsPerPixel, m_buffer+BMP_BITMAPCOREHEADER_CDEPTH_FIELD_OFFS, 2);
+    std::cout << "Color depth: " << m_bitsPerPixel << " bits" << '\n';
+    std::cout << std::hex;
+    switch (m_bitsPerPixel)
+    {
+    case  1:
+    case  2:
+    case  4:
+    case  8:
+    case 24:
+        // OK
+        break;
+    default:
+        std::cerr << "Invalid color depth, allowed values "
+                "are 1, 2, 4, 8 and 24" << '\n';
+        return 1;
+    }
+
+    m_rowSize = std::ceil(m_bitsPerPixel * m_bitmapWidthPx / 32.0) * 4;
+
+    return 0;
+}
+
+int BmpImage::_readBitmapInfoHeader()
+{
+    std::memcpy(&m_bitmapWidthPx,  m_buffer+BMP_BITMAPINFOHEADER_WIDTH_FIELD_OFFS, 4);
+    std::memcpy(&m_bitmapHeightPx, m_buffer+BMP_BITMAPINFOHEADER_HEIGHT_FIELD_OFFS, 4);
+    m_bitmapHeightPx = std::abs((int32_t)m_bitmapHeightPx);
+    std::cout << std::dec;
+    std::cout << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << " px" << '\n';
+    if (m_bitmapWidthPx == 0 || m_bitmapHeightPx == 0)
+    {
+        std::cerr << "Zero width/height" << '\n';
+        return 1;
+    }
+    if ((int32_t)m_bitmapWidthPx < 0)
+    {
+        std::cerr << "Negative width" << '\n';
+        return 1;
+    }
+    uint32_t widthTimesHeight{m_bitmapWidthPx * m_bitmapHeightPx};
+    if (widthTimesHeight / m_bitmapWidthPx != m_bitmapHeightPx)
+    {
+        std::cerr << "Width times height overflows, this is not safe" << '\n';
+        return 1;
+    }
+
+    uint16_t colorPlaneNum{};
+    std::memcpy(&colorPlaneNum, m_buffer+BMP_BITMAPINFOHEADER_CPLANE_FIELD_OFFS, 2);
+    if (colorPlaneNum != 1)
+    {
+        std::cerr << "Color plane number is invalid (not 1)" << '\n';
+        return 1;
+    }
+    std::memcpy(&m_bitsPerPixel, m_buffer+BMP_BITMAPINFOHEADER_CDEPTH_FIELD_OFFS, 2);
+    std::cout << "Color depth: " << m_bitsPerPixel << " bits" << '\n';
+    std::cout << std::hex;
+    switch (m_bitsPerPixel)
+    {
+    case  1:
+    case  2:
+    case  4:
+    case  8:
+    case 16:
+    case 24:
+    case 32:
+        // OK
+        break;
+    default:
+        std::cerr << "Invalid color depth, allowed values "
+                "are 1, 2, 4, 8, 16, 24 and 32" << '\n';
+        return 1;
+    }
+
+    uint32_t compMethodUint{};
+    std::memcpy(&compMethodUint, m_buffer+BMP_BITMAPINFOHEADER_COMPMETH_FIELD_OFFS, 4);
+    std::cout << "Compression method: 0x" << compMethodUint <<
+            " / " << compMethodToStr((CompressionMethod)compMethodUint)<< '\n';
+    m_compMethod = static_cast<CompressionMethod>(compMethodUint);
+    // TODO: Implement compression
+    switch (m_compMethod)
+    {
+    case CompressionMethod::BI_RGB:
+    case CompressionMethod::BI_CMYK:
+    case CompressionMethod::BI_BITFIELDS:
+    case CompressionMethod::BI_ALPHABITFIELDS:
+        // Image is uncompressed
+        std::cout << "Image is not compressed" << '\n';
+        break;
+    case CompressionMethod::BI_RLE8:
+    case CompressionMethod::BI_RLE4:
+    case CompressionMethod::BI_JPEG:
+    case CompressionMethod::BI_PNG:
+    case CompressionMethod::BI_CMYKRLE8:
+    case CompressionMethod::BI_CMYKRLE4:
+        std::cerr << "Image is compressed, unimplemented" << '\n';
+        return 1;
+    default:
+        std::cerr << "Invalid compression method" << '\n';
+        return 1;
+    }
+
+    // Only 16 and 32-bit images can have bitmasks
+    if (m_compMethod == CompressionMethod::BI_BITFIELDS && (m_bitsPerPixel != 16 && m_bitsPerPixel != 32))
+    {
+        std::cerr << "Bitmasks cannot be used with 16 or 32-bit images" << '\n';
+        return 1;
+    }
+    if (m_compMethod == CompressionMethod::BI_RLE4 && m_bitsPerPixel != 4)
+    {
+        std::cerr << "RLE4 compression is only possible with 4-bit images" << '\n';
+        return 1;
+    }
+    if (m_compMethod == CompressionMethod::BI_RLE8 && m_bitsPerPixel != 8)
+    {
+        std::cerr << "RLE8 compression is only possible with 8-bit images" << '\n';
+        return 1;
+    }
+
+    std::memcpy(&m_imageSize, m_buffer+BMP_BITMAPINFOHEADER_IMGSIZE_FIELD_OFFS, 4);
+    // Only BI_RGB images can have the size field set to 0
+    if (m_compMethod != CompressionMethod::BI_RGB && m_imageSize == 0)
+    {
+        std::cerr << "Image is compressed, but size is set to 0" << '\n';
+        return 1;
+    }
+    std::cout << "Size of the image data: " << m_imageSize << '\n';
+
+    std::memcpy(&m_imageHResPpm, m_buffer+BMP_BITMAPINFOHEADER_HRES_FIELD_OFFS, 4);
+    std::memcpy(&m_imageVResPpm, m_buffer+BMP_BITMAPINFOHEADER_VRES_FIELD_OFFS, 4);
+    std::cout << std::dec << "Resolution (Pixel/Metre): " << m_imageHResPpm << "x"
+            << m_imageVResPpm << '\n' << std::hex;
+
+    std::memcpy(&m_numOfPaletteColors, m_buffer+BMP_BITMAPINFOHEADER_CNUM_FIELD_OFFS, 4);
+    std::cout << std::dec << "Number of colors in palette: " <<
+            m_numOfPaletteColors << std::hex << '\n';
+
+    if ((m_bitsPerPixel == 1 && (m_numOfPaletteColors > 2 || m_numOfPaletteColors == 0)) ||
+        (m_bitsPerPixel == 4 && m_numOfPaletteColors > 16) ||
+        (m_bitsPerPixel == 8 && m_numOfPaletteColors > 256) ||
+        (m_bitsPerPixel == 16 && m_numOfPaletteColors > 65536) ||
+        // If the comp. method is BI_RGB, the palette must be empty
+        (m_bitsPerPixel == 16 && m_compMethod == CompressionMethod::BI_RGB && m_numOfPaletteColors))
+    {
+        std::cerr << "Invalid palette" << '\n';
+        return 1;
+    }
+
+    m_rowSize = std::ceil(m_bitsPerPixel * m_bitmapWidthPx / 32.0) * 4;
+
+    return 0;
 }
 
 int BmpImage::open(const std::string &filepath)
@@ -154,140 +340,62 @@ int BmpImage::open(const std::string &filepath)
     // We decide the type of the DIB header using its size
     switch (m_dibHeaderSize)
     {
-    case BMP_BITMAPCOREHEADER_SIZE: // XXX: Implement this
-        std::memcpy(&m_bitmapWidthPx,  m_buffer+BMP_BITMAPCOREHEADER_WIDTH_FIELD_OFFS, 2);
-        std::memcpy(&m_bitmapHeightPx, m_buffer+BMP_BITMAPCOREHEADER_HEIGHT_FIELD_OFFS, 2);
+    
+    case BMP_BITMAPCOREHEADER_SIZE:
+    {
+        int status{_readBitmapCoreHeader()};
+        if (status)
+            return status;
         break;
+    }
+    
+    case BMP_OS22XBITMAPHEADER_SIZE_VAR1: // Extended BITMAPCOREHEADER
+    {
+        int status{_readBitmapCoreHeader()};
+        if (status)
+            return status;
+        break;
+    }
 
     case BMP_BITMAPINFOHEADER_SIZE:
     {
-        std::memcpy(&m_bitmapWidthPx,  m_buffer+BMP_BITMAPINFOHEADER_WIDTH_FIELD_OFFS, 4);
-        std::memcpy(&m_bitmapHeightPx, m_buffer+BMP_BITMAPINFOHEADER_HEIGHT_FIELD_OFFS, 4);
-        m_bitmapHeightPx = std::abs((int32_t)m_bitmapHeightPx);
-        std::cout << std::dec;
-        std::cout << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << " px" << '\n';
-        if (m_bitmapWidthPx == 0 || m_bitmapHeightPx == 0)
-        {
-            std::cerr << "Zero width/height" << '\n';
-            return 1;
-        }
-        if ((int32_t)m_bitmapWidthPx < 0)
-        {
-            std::cerr << "Negative width" << '\n';
-            return 1;
-        }
-        uint32_t widthTimesHeight{m_bitmapWidthPx * m_bitmapHeightPx};
-        if (widthTimesHeight / m_bitmapWidthPx != m_bitmapHeightPx)
-        {
-            std::cerr << "Width times height overflows, this is not safe" << '\n';
-            return 1;
-        }
-
-        uint16_t colorPlaneNum{};
-        std::memcpy(&colorPlaneNum, m_buffer+BMP_BITMAPINFOHEADER_CPLANE_FIELD_OFFS, 2);
-        if (colorPlaneNum != 1)
-        {
-            std::cerr << "Color plane number is invalid (not 1)" << '\n';
-            return 1;
-        }
-        std::memcpy(&m_bitsPerPixel, m_buffer+BMP_BITMAPINFOHEADER_CDEPTH_FIELD_OFFS, 2);
-        std::cout << "Color depth: " << m_bitsPerPixel << " bits" << '\n';
-        std::cout << std::hex;
-        switch (m_bitsPerPixel)
-        {
-        case  1:
-        case  2:
-        case  4:
-        case  8:
-        case 16:
-        case 24:
-        case 32:
-            // OK
-            break;
-        default:
-            std::cerr << "Invalid color depth, allowed values "
-                    "are 1, 2, 4, 8, 16, 24 and 32" << '\n';
-            return 1;
-        }
-
-        uint32_t compMethodUint{};
-        std::memcpy(&compMethodUint, m_buffer+BMP_BITMAPINFOHEADER_COMPMETH_FIELD_OFFS, 4);
-        std::cout << "Compression method: 0x" << compMethodUint <<
-                " / " << compMethodToStr((CompressionMethod)compMethodUint)<< '\n';
-        m_compMethod = static_cast<CompressionMethod>(compMethodUint);
-        // TODO: Implement compression
-        switch (m_compMethod)
-        {
-        case CompressionMethod::BI_RGB:
-        case CompressionMethod::BI_CMYK:
-        case CompressionMethod::BI_BITFIELDS:
-        case CompressionMethod::BI_ALPHABITFIELDS:
-            // Image is uncompressed
-            std::cout << "Image is not compressed" << '\n';
-            break;
-        case CompressionMethod::BI_RLE8:
-        case CompressionMethod::BI_RLE4:
-        case CompressionMethod::BI_JPEG:
-        case CompressionMethod::BI_PNG:
-        case CompressionMethod::BI_CMYKRLE8:
-        case CompressionMethod::BI_CMYKRLE4:
-            std::cerr << "Image is compressed, unimplemented" << '\n';
-            return 1;
-        default:
-            std::cerr << "Invalid compression method" << '\n';
-            return 1;
-        }
-
-        // Only 16 and 32-bit images can have bitmasks
-        if (m_compMethod == CompressionMethod::BI_BITFIELDS && (m_bitsPerPixel != 16 && m_bitsPerPixel != 32))
-        {
-            std::cerr << "Bitmasks cannot be used with 16 or 32-bit images" << '\n';
-            return 1;
-        }
-        if (m_compMethod == CompressionMethod::BI_RLE4 && m_bitsPerPixel != 4)
-        {
-            std::cerr << "RLE4 compression is only possible with 4-bit images" << '\n';
-            return 1;
-        }
-        if (m_compMethod == CompressionMethod::BI_RLE8 && m_bitsPerPixel != 8)
-        {
-            std::cerr << "RLE8 compression is only possible with 8-bit images" << '\n';
-            return 1;
-        }
-
-        std::memcpy(&m_imageSize, m_buffer+BMP_BITMAPINFOHEADER_IMGSIZE_FIELD_OFFS, 4);
-        // Only BI_RGB images can have the size field set to 0
-        if (m_compMethod != CompressionMethod::BI_RGB && m_imageSize == 0)
-        {
-            std::cerr << "Image is compressed, but size is set to 0" << '\n';
-            return 1;
-        }
-        std::cout << "Size of the image data: " << m_imageSize << '\n';
-        
-        std::memcpy(&m_imageHResPpm, m_buffer+BMP_BITMAPINFOHEADER_HRES_FIELD_OFFS, 4);
-        std::memcpy(&m_imageVResPpm, m_buffer+BMP_BITMAPINFOHEADER_VRES_FIELD_OFFS, 4);
-        std::cout << std::dec << "Resolution (Pixel/Metre): " << m_imageHResPpm << "x"
-                << m_imageVResPpm << '\n' << std::hex;
-
-        std::memcpy(&m_numOfPaletteColors, m_buffer+BMP_BITMAPINFOHEADER_CNUM_FIELD_OFFS, 4);
-        std::cout << std::dec << "Number of colors in palette: " <<
-                m_numOfPaletteColors << std::hex << '\n';
-
-        if ((m_bitsPerPixel == 1 && (m_numOfPaletteColors > 2 || m_numOfPaletteColors == 0)) ||
-            (m_bitsPerPixel == 4 && m_numOfPaletteColors > 16) ||
-            (m_bitsPerPixel == 8 && m_numOfPaletteColors > 256) ||
-            (m_bitsPerPixel == 16 && m_numOfPaletteColors > 65536) ||
-            // If the comp. method is BI_RGB, the palette must be empty
-            (m_bitsPerPixel == 16 && m_compMethod == CompressionMethod::BI_RGB && m_numOfPaletteColors))
-        {
-            std::cerr << "Invalid palette" << '\n';
-            return 1;
-        }
-
-        m_rowSize = std::ceil(m_bitsPerPixel * m_bitmapWidthPx / 32.0) * 4;
-
+        int status{_readBitmapInfoHeader()};
+        if (status)
+            return status;
         break;
-    } // End of `case BMP_BITMAPINFOHEADER_SIZE:`
+    }
+
+    case BMP_BITMAPV2INFOHEADER_SIZE: // Extended BITMAPINFOHEADER
+    {
+        int status{_readBitmapInfoHeader()};
+        if (status)
+            return status;
+        break;
+    }
+
+    case BMP_BITMAPV3INFOHEADER_SIZE: // Extended BITMAPINFOHEADER
+    {
+        int status{_readBitmapInfoHeader()};
+        if (status)
+            return status;
+        break;
+    }
+
+    case BMP_BITMAPV4HEADER_SIZE: // Extended BITMAPINFOHEADER
+    {
+        int status{_readBitmapInfoHeader()};
+        if (status)
+            return status;
+        break;
+    }
+
+    case BMP_BITMAPV5HEADER_SIZE: // Extended BITMAPINFOHEADER
+    {
+        int status{_readBitmapInfoHeader()};
+        if (status)
+            return status;
+        break;
+    }
 
     default:
         std::cerr << "Unimplemented or invalid DIB header size" << '\n';
