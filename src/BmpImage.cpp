@@ -435,35 +435,21 @@ int BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int wind
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
-            if (m_numOfPaletteColors) // Paletted image
+            uint8_t paletteI{m_buffer[m_bitmapOffset + i]};
+            if (m_numOfPaletteColors && paletteI >= m_numOfPaletteColors)
             {
-                uint8_t paletteI{m_buffer[m_bitmapOffset + i]};
-                if (paletteI >= m_numOfPaletteColors)
-                {
-                    std::cerr <<
-                        "Invalid color index while rendering 8-bit image: " << (int)paletteI <<
-                        ", palette only has " << m_numOfPaletteColors << " entries" << '\n';
-                    return 1;
-                }
+                std::cerr <<
+                    "Invalid color index while rendering 8-bit image: " << (int)paletteI <<
+                    ", palette only has " << m_numOfPaletteColors << " entries" << '\n';
+                return 1;
+            }
 
-                SDL_SetRenderDrawColor(renderer,
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
-                        255
-                );
-            }
-            else // RGB?
-            {
-                // FIXME: Weird colors
-                SDL_SetRenderDrawColor(renderer,
-                        ((m_buffer[m_bitmapOffset + i] & 0b00001100) >> 2) / 3.0 * 255,
-                        ((m_buffer[m_bitmapOffset + i] & 0b00000011) >> 0) / 3.0 * 255,
-                        ((m_buffer[m_bitmapOffset + i] & 0b00110000) >> 4) / 3.0 * 255,
-                        //((m_buffer[m_bitmapOffset + i] & 0b11000000) >> 6) / 3.0 * 255,
-                        255
-                );
-            }
+            SDL_SetRenderDrawColor(renderer,
+                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
+                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
+                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
+                    255
+            );
             SDL_RenderDrawPoint(renderer, xPos, yPos);
         }
 
