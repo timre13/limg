@@ -343,9 +343,8 @@ int BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int wind
              * Add padding to the offset:
              * Every line needs to be padded to a multiple of 4 with additional bytes at the end.
              */
-            if (m_bitmapWidthPx % 4)
-                // FIXME: This is wrong
-                i += 4 - m_bitmapWidthPx % 4;
+            if (m_bitmapWidthPx % 32)
+                i += 32 - m_bitmapWidthPx % 32;
 
             xPos = 0;
             --yPos;
@@ -411,9 +410,8 @@ int BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int wind
              * Add padding to the offset:
              * Every line needs to be padded to a multiple of 4 with additional bytes at the end.
              */
-            if (m_bitmapWidthPx % 4)
-                // FIXME: This is wrong
-                i += 4 - m_bitmapWidthPx % 4;
+            if (m_bitmapWidthPx % 8)
+                i += 8 - m_bitmapWidthPx % 8;
 
 
             xPos = 0;
