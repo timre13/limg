@@ -55,6 +55,22 @@ int main(int argc, char** argv)
 
     SDL_Init(SDL_INIT_VIDEO);
 
+    int maxWindowWidth{};
+    int maxWindowHeight{};
+
+    SDL_DisplayMode displayMode{};
+    if (SDL_GetDesktopDisplayMode(0, &displayMode))
+    {
+        std::cerr << "SDL_GetDesktopDisplayMode() failed: " << SDL_GetError() << '\n';
+        maxWindowWidth = 2000;
+        maxWindowHeight = 1500;
+    }
+    else
+    {
+        maxWindowWidth = displayMode.w;
+        maxWindowHeight = displayMode.h;
+    }
+
     auto window{SDL_CreateWindow(
             "LIMG",
             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -65,15 +81,35 @@ int main(int argc, char** argv)
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     SDL_SetWindowMinimumSize(window, 10, 10);
-    SDL_SetWindowMaximumSize(window, 2000, 2000);
+    SDL_SetWindowMaximumSize(window, maxWindowWidth, maxWindowHeight);
+
+    SDL_Texture* texture{SDL_CreateTexture(
+            renderer,
+            SDL_PIXELFORMAT_RGBA32,
+            SDL_TEXTUREACCESS_STREAMING,
+            maxWindowWidth, maxWindowHeight
+    )};
+    if (!texture)
+    {
+        std::cerr << "Failed to create texture: " << SDL_GetError() << '\n';
+        return 1;
+    }
 
     if (isTestingMode)
     {
         int windowWidth, windowHeight;
         SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-        int renderStatus{image->render(renderer, windowWidth, windowHeight)};
+        int renderStatus{image->render(texture, windowWidth, windowHeight, maxWindowWidth)};
+        if (renderStatus)
+        {
+            SDL_DestroyTexture(texture);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+            return renderStatus;
+        }
+        SDL_Rect srcRect{0, 0, windowWidth, windowHeight};
+        SDL_RenderCopy(renderer, texture, &srcRect, nullptr);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -131,16 +167,18 @@ int main(int argc, char** argv)
         {
             int windowWidth, windowHeight;
             SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-            SDL_RenderClear(renderer);
-            int renderStatus{image->render(renderer, windowWidth, windowHeight)};
+            int renderStatus{image->render(texture, windowWidth, windowHeight, maxWindowWidth)};
             if (renderStatus)
             {
+                SDL_DestroyTexture(texture);
                 SDL_DestroyRenderer(renderer);
                 SDL_DestroyWindow(window);
                 SDL_Quit();
                 return renderStatus;
             }
+            SDL_Rect srcRect{0, 0, windowWidth, windowHeight};
+            if (SDL_RenderCopy(renderer, texture, &srcRect, nullptr))
+                std::cerr << "Failed to copy texture: " << SDL_GetError() << '\n';
             isRedrawNeeded = false;
         }
 
@@ -148,6 +186,7 @@ int main(int argc, char** argv)
         SDL_Delay(16);
     }
 
+    SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

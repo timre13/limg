@@ -104,6 +104,30 @@ static std::string dibHeaderSizeToName(uint32_t size)
     }
 }
 
+namespace
+{
+
+struct RGB // Used for drawPointAt()
+{
+    uint8_t r{};
+    uint8_t g{};
+    uint8_t b{};
+};
+
+inline void drawPointAt(
+        uint8_t* pixelArray,
+        int textureWidth,
+        int xPos, int yPos,
+        const RGB& color)
+{
+    const long long offset{(yPos * textureWidth + xPos) * 4};
+    pixelArray[offset + 0] = color.r;
+    pixelArray[offset + 1] = color.g;
+    pixelArray[offset + 2] = color.b;
+}
+
+} // End of namespace
+
 int BmpImage::_readBitmapCoreHeader()
 {
     std::memcpy(&m_bitmapWidthPx,  m_buffer+BMP_BITMAPCOREHEADER_WIDTH_FIELD_OFFS, 2);
@@ -408,7 +432,7 @@ int BmpImage::open(const std::string &filepath)
     return 0;
 }
 
-int BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render1BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -417,6 +441,10 @@ int BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int wind
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
+            uint8_t colorR{};
+            uint8_t colorG{};
+            uint8_t colorB{};
+
             if (m_numOfPaletteColors) // Paletted
             {
                 uint8_t paletteI{m_buffer[m_bitmapOffset + i / 8]};
@@ -429,19 +457,16 @@ int BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int wind
                     return 1;
                 }
 
-                SDL_SetRenderDrawColor(renderer,
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
-                        255
-                );
+                colorR = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2];
+                colorG = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1];
+                colorB = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0];
             }
             else // No palette, error (?)
             {
                 std::cerr << "1-bit image without a palette" << '\n';
                 return 1;
             }
-            SDL_RenderDrawPoint(renderer, xPos, yPos);
+            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -466,7 +491,7 @@ int BmpImage::_render1BitImage(SDL_Renderer *renderer, int windowWidth, int wind
     return 0;
 }
 
-int BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render4BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -475,6 +500,10 @@ int BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int wind
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
+            uint8_t colorR{};
+            uint8_t colorG{};
+            uint8_t colorB{};
+
             if (m_numOfPaletteColors) // Paletted
             {
                 // Use the more significant nibble if the number is even, use the another otherwise
@@ -487,12 +516,9 @@ int BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int wind
                     return 1;
                 }
 
-                SDL_SetRenderDrawColor(renderer,
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
-                        m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
-                        255
-                );
+                colorR = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2];
+                colorG = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1];
+                colorB = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0];
             }
             else // RGB
             {
@@ -500,15 +526,12 @@ int BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int wind
                     uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
 
                 // FIXME: Weird colors
-                SDL_SetRenderDrawColor(renderer,
-                        ((color & 0b00001000) >> 3) * 255,
-                        ((color & 0b00000100) >> 2) * 255,
-                        ((color & 0b00000010) >> 1) * 255,
+                colorR = ((color & 0b00001000) >> 3) * 255;
+                colorG = ((color & 0b00000100) >> 2) * 255;
+                colorB = ((color & 0b00000010) >> 1) * 255;
                         //((color & 0b00000001) >> 0) * 255,
-                        255
-                );
             }
-            SDL_RenderDrawPoint(renderer, xPos, yPos);
+            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -534,7 +557,7 @@ int BmpImage::_render4BitImage(SDL_Renderer *renderer, int windowWidth, int wind
     return 0;
 }
 
-int BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render8BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
 {
    uint_fast32_t xPos{};
    uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -552,13 +575,10 @@ int BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int wind
                 return 1;
             }
 
-            SDL_SetRenderDrawColor(renderer,
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2],
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1],
-                    m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0],
-                    255
-            );
-            SDL_RenderDrawPoint(renderer, xPos, yPos);
+            uint8_t colorR{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2]};
+            uint8_t colorG{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1]};
+            uint8_t colorB{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0]};
+            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -583,7 +603,7 @@ int BmpImage::_render8BitImage(SDL_Renderer *renderer, int windowWidth, int wind
     return 0;
 }
 
-int BmpImage::_render16BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render16BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -602,10 +622,8 @@ int BmpImage::_render16BitImage(SDL_Renderer *renderer, int windowWidth, int win
                              (m_buffer[m_bitmapOffset + i + 0] & 0b11100000) >> 5)};
                 uint8_t bVal{(uint8_t)(m_buffer[m_bitmapOffset + i + 0] & 0b00011111)};
 
-                SDL_SetRenderDrawColor(renderer,
                 //        rVal / 31.0f * 255, gVal / 31.0f * 255, bVal / 31.0f * 255, 255);
-                        rVal << 3 | 7, gVal << 3 | 7, bVal << 3 | 7, 255);
-                SDL_RenderDrawPoint(renderer, xPos, yPos);
+                drawPointAt(pixelArray, textureWidth, xPos, yPos, {rVal << 3 | 7, gVal << 3 | 7, bVal << 3 | 7});
             }
             else if (m_compMethod == CompressionMethod::BI_BITFIELDS) // RGB with bitmask, can have palette(?)
             {
@@ -639,7 +657,7 @@ int BmpImage::_render16BitImage(SDL_Renderer *renderer, int windowWidth, int win
     return 0;
 }
 
-int BmpImage::_render24BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::_render24BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
@@ -649,14 +667,11 @@ int BmpImage::_render24BitImage(SDL_Renderer *renderer, int windowWidth, int win
         if (xPos < windowWidth && yPos < windowHeight)
         {
             // BGR format!
-            SDL_SetRenderDrawColor(renderer,
-                    m_buffer[m_bitmapOffset + i + 2],
-                    m_buffer[m_bitmapOffset + i + 1],
-                    m_buffer[m_bitmapOffset + i + 0],
-                    255
-            );
+            uint8_t colorR{m_buffer[m_bitmapOffset + i + 2]};
+            uint8_t colorG{m_buffer[m_bitmapOffset + i + 1]};
+            uint8_t colorB{m_buffer[m_bitmapOffset + i + 0]};
 
-            SDL_RenderDrawPoint(renderer, xPos, yPos);
+            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -680,22 +695,38 @@ int BmpImage::_render24BitImage(SDL_Renderer *renderer, int windowWidth, int win
     return 0;
 }
 
-int BmpImage::render(SDL_Renderer *renderer, int windowWidth, int windowHeight) const
+int BmpImage::render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const
 {
     if (!m_isInitialized)
     {
         return 1;
     }
 
+    SDL_Rect lockRect{0, 0, windowWidth, windowHeight};
+    uint8_t* pixelArray{};
+    int pitch{};
+    if (SDL_LockTexture(texture, &lockRect, (void**)&pixelArray, &pitch))
+    {
+        std::cerr << "Failed to lock texture: " << SDL_GetError() << '\n';
+        return 1;
+    }
+
+    int renderStatus{};
     switch (m_bitsPerPixel)
     {
-    case  1: return  _render1BitImage(renderer, windowWidth, windowHeight);
-    case  4: return  _render4BitImage(renderer, windowWidth, windowHeight);
-    case  8: return  _render8BitImage(renderer, windowWidth, windowHeight);
-    case 16: return _render16BitImage(renderer, windowWidth, windowHeight);
-    case 24: return _render24BitImage(renderer, windowWidth, windowHeight);
-    default: std::cerr << "Unimplemented color depth" << '\n'; return 1;
+    case  1: renderStatus =  _render1BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
+    case  4: renderStatus =  _render4BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
+    case  8: renderStatus =  _render8BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
+    case 16: renderStatus = _render16BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
+    case 24: renderStatus = _render24BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
+    default:
+        std::cerr << "Unimplemented color depth" << '\n';
+        SDL_UnlockTexture(texture);
+        return 1;
     }
+
+    SDL_UnlockTexture(texture);
+    return renderStatus;
 }
 
 BmpImage::~BmpImage()

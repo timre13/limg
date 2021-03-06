@@ -66,15 +66,15 @@ private:
     int _readBitmapCoreHeader();
     int _readBitmapInfoHeader();
 
-    int _render1BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
-    int _render4BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
-    int _render8BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
-    int _render16BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
-    int _render24BitImage(SDL_Renderer *renderer, int windowWidth, int windowHeight) const;
+    int  _render1BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    int  _render4BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    int  _render8BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    int _render16BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    int _render24BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
 
 public:
     virtual int open(const std::string &filepath) override;
-    virtual int render(SDL_Renderer *renderer, int windowWidth, int windowHeight) const override;
+    virtual int render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const override;
 
     inline uint32_t getWidthPx() const { return m_bitmapWidthPx; }
     inline uint32_t getHeightPx() const { return m_bitmapHeightPx; }

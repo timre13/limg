@@ -34,6 +34,6 @@ class Image
 public:
     Image() {}
     virtual int open(const std::string &filepath) = 0;
-    virtual int render(SDL_Renderer *renderer, int windowWidth, int windowHeight) const = 0;
+    virtual int render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const = 0;
     virtual ~Image();
 };
