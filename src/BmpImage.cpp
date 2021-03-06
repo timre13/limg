@@ -500,37 +500,21 @@ int BmpImage::_render4BitImage(uint8_t* pixelArray, int windowWidth, int windowH
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
-            uint8_t colorR{};
-            uint8_t colorG{};
-            uint8_t colorB{};
+            // Use the more significant nibble if the number is even, use the another otherwise
+            uint8_t paletteI{
+                uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
 
-            if (m_numOfPaletteColors) // Paletted
+            // If the palette color number is specified, it is the max palette index,
+            // if not specified, default to 2^4
+            if ((m_numOfPaletteColors && paletteI >= m_numOfPaletteColors) || (paletteI >= 16))
             {
-                // Use the more significant nibble if the number is even, use the another otherwise
-                uint8_t paletteI{
-                    uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
-
-                if (paletteI >= m_numOfPaletteColors)
-                {
-                    std::cerr << "Invalid color index while rendering 4-bit image: " << (int)paletteI << '\n';
-                    return 1;
-                }
-
-                colorR = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2];
-                colorG = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1];
-                colorB = m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0];
+                std::cerr << "Invalid color index while rendering 4-bit image: " << (int)paletteI << '\n';
+                return 1;
             }
-            else // RGB
-            {
-                uint8_t color{
-                    uint8_t((m_buffer[m_bitmapOffset + i / 2] & (i % 2 ? 0x0f : 0xf0)) >> (i % 2 ? 0 : 4))};
 
-                // FIXME: Weird colors
-                colorR = ((color & 0b00001000) >> 3) * 255;
-                colorG = ((color & 0b00000100) >> 2) * 255;
-                colorB = ((color & 0b00000010) >> 1) * 255;
-                        //((color & 0b00000001) >> 0) * 255,
-            }
+            uint8_t colorR{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2]};
+            uint8_t colorG{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1]};
+            uint8_t colorB{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0]};
             drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
