@@ -106,6 +106,7 @@ int main(int argc, char** argv)
         std::cerr << "Failed to create texture: " << SDL_GetError() << '\n';
         return 1;
     }
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 
     if (isTestingMode)
     {
@@ -131,6 +132,7 @@ int main(int argc, char** argv)
     bool isRunning{true};
     bool isRedrawNeeded{};
     bool isFullscreen{};
+    bool useTransparency{true};
 
     while (isRunning)
     {
@@ -153,6 +155,12 @@ int main(int argc, char** argv)
                 case SDLK_f:
                     isFullscreen = !isFullscreen;
                     SDL_SetWindowFullscreen(window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+                    break;
+
+                case SDLK_t: // Toggle transparency
+                    useTransparency = !useTransparency;
+                    SDL_SetTextureBlendMode(texture, useTransparency ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
+                    isRedrawNeeded = true;
                     break;
                 }
                 break;
@@ -177,6 +185,9 @@ int main(int argc, char** argv)
         
         if (isRedrawNeeded)
         {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            SDL_RenderClear(renderer);
+
             int windowWidth, windowHeight;
             SDL_GetWindowSize(window, &windowWidth, &windowHeight);
             int renderStatus{image->render(texture, windowWidth, windowHeight, maxWindowWidth)};

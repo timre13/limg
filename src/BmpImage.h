@@ -71,6 +71,7 @@ private:
     int  _render8BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
     int _render16BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
     int _render24BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    int _render32BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
 
 public:
     virtual int open(const std::string &filepath) override;

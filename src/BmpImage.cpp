@@ -107,23 +107,25 @@ static std::string dibHeaderSizeToName(uint32_t size)
 namespace
 {
 
-struct RGB // Used for drawPointAt()
+struct RGBA // Used for drawPointAt()
 {
     uint8_t r{};
     uint8_t g{};
     uint8_t b{};
+    uint8_t a{255};
 };
 
 inline void drawPointAt(
         uint8_t* pixelArray,
         int textureWidth,
         int xPos, int yPos,
-        const RGB& color)
+        const RGBA& color)
 {
     const long long offset{(yPos * textureWidth + xPos) * 4};
     pixelArray[offset + 0] = color.r;
     pixelArray[offset + 1] = color.g;
     pixelArray[offset + 2] = color.b;
+    pixelArray[offset + 3] = color.a;
 }
 
 } // End of namespace
@@ -165,7 +167,6 @@ int BmpImage::_readBitmapCoreHeader()
     switch (m_bitsPerPixel)
     {
     case  1:
-    case  2:
     case  4:
     case  8:
     case 24:
@@ -173,7 +174,7 @@ int BmpImage::_readBitmapCoreHeader()
         break;
     default:
         std::cerr << "Invalid color depth, allowed values "
-                "are 1, 2, 4, 8 and 24" << '\n';
+                "are 1, 4, 8 and 24" << '\n';
         return 1;
     }
 
@@ -219,7 +220,6 @@ int BmpImage::_readBitmapInfoHeader()
     switch (m_bitsPerPixel)
     {
     case  1:
-    case  2:
     case  4:
     case  8:
     case 16:
@@ -229,7 +229,7 @@ int BmpImage::_readBitmapInfoHeader()
         break;
     default:
         std::cerr << "Invalid color depth, allowed values "
-                "are 1, 2, 4, 8, 16, 24 and 32" << '\n';
+                "are 1, 4, 8, 16, 24 and 32" << '\n';
         return 1;
     }
 
@@ -695,6 +695,44 @@ int BmpImage::_render24BitImage(uint8_t* pixelArray, int windowWidth, int window
     return 0;
 }
 
+int BmpImage::_render32BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+{
+    uint_fast32_t xPos{};
+    uint_fast32_t yPos{m_bitmapHeightPx - 1};
+
+    for (uint_fast32_t i{}; yPos != -1; i += 4)
+    {
+        if (xPos < windowWidth && yPos < windowHeight)
+        {
+            uint8_t colorA{m_buffer[m_bitmapOffset + i + 3]};
+            uint8_t colorR{m_buffer[m_bitmapOffset + i + 2]};
+            uint8_t colorG{m_buffer[m_bitmapOffset + i + 1]};
+            uint8_t colorB{m_buffer[m_bitmapOffset + i + 0]};
+
+            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
+        }
+
+        // If the last pixel of the line
+        if (xPos == m_bitmapWidthPx - 1)
+        {
+            /*
+             * Add padding to the offset:
+             * Every line needs to be padded to a multiple of 4 with additional bytes at the end.
+             */
+            // FIXME: Fix this
+            i += m_bitmapWidthPx % 4;
+
+            xPos = 0;
+            --yPos;
+        }
+        else
+        {
+            ++xPos;
+        }
+    }
+
+    return 0;
+}
 int BmpImage::render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const
 {
     if (!m_isInitialized)
@@ -719,6 +757,7 @@ int BmpImage::render(SDL_Texture* texture, int windowWidth, int windowHeight, in
     case  8: renderStatus =  _render8BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
     case 16: renderStatus = _render16BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
     case 24: renderStatus = _render24BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
+    case 32: renderStatus = _render32BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
     default:
         std::cerr << "Unimplemented color depth" << '\n';
         SDL_UnlockTexture(texture);
