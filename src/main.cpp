@@ -148,11 +148,12 @@ int main(int argc, char** argv)
             case SDL_KEYUP:
                 switch (event.key.keysym.sym)
                 {
-                case SDLK_ESCAPE:
+                case SDLK_ESCAPE: // Quit
+                case SDLK_q:
                     isRunning = false;
                     break;
 
-                case SDLK_f:
+                case SDLK_f: // Toggle fullscreen
                     isFullscreen = !isFullscreen;
                     SDL_SetWindowFullscreen(window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
                     break;
