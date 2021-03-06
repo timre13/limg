@@ -77,7 +77,19 @@ int main(int argc, char** argv)
             image->getWidthPx(), image->getHeightPx(),
             SDL_WINDOW_RESIZABLE
     )};
+    if (!window)
+    {
+        std::cerr << "Failed to create window: " << SDL_GetError() << '\n';
+        return 1;
+    }
+
     auto renderer{SDL_CreateRenderer(window, -1, 0)};
+    if (!renderer)
+    {
+        std::cerr << "Failed to create renderer: " << SDL_GetError() << '\n';
+        return 1;
+    }
+
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     SDL_SetWindowMinimumSize(window, 10, 10);
