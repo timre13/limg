@@ -262,7 +262,7 @@ int BmpImage::_readBitmapInfoHeader()
     // Only 16 and 32-bit images can have bitmasks
     if (m_compMethod == CompressionMethod::BI_BITFIELDS && (m_bitsPerPixel != 16 && m_bitsPerPixel != 32))
     {
-        std::cerr << "Bitmasks cannot be used with 16 or 32-bit images" << '\n';
+        std::cerr << "Bitmasks can only be used with 16 or 32-bit images" << '\n';
         return 1;
     }
     if (m_compMethod == CompressionMethod::BI_RLE4 && m_bitsPerPixel != 4)
