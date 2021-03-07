@@ -80,7 +80,6 @@ static std::string compMethodToStr(BmpImage::CompressionMethod method)
     case BmpImage::CompressionMethod::BI_BITFIELDS:      return "Bitfields";
     case BmpImage::CompressionMethod::BI_JPEG:           return "JPEG";
     case BmpImage::CompressionMethod::BI_PNG:            return "PNG";
-    case BmpImage::CompressionMethod::BI_ALPHABITFIELDS: return "Alphabitfields";
     case BmpImage::CompressionMethod::BI_CMYK:           return "CMYK";
     case BmpImage::CompressionMethod::BI_CMYKRLE8:       return "CMYKRLE8";
     case BmpImage::CompressionMethod::BI_CMYKRLE4:       return "CMYKRLE4";
@@ -244,7 +243,6 @@ int BmpImage::_readBitmapInfoHeader()
     case CompressionMethod::BI_RGB:
     case CompressionMethod::BI_CMYK:
     case CompressionMethod::BI_BITFIELDS:
-    case CompressionMethod::BI_ALPHABITFIELDS:
         // Image is uncompressed
         std::cout << "Image is not compressed" << '\n';
         break;

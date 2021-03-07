@@ -41,7 +41,6 @@ public:
         BI_BITFIELDS,       // Bitmasks
         BI_JPEG,
         BI_PNG,
-        BI_ALPHABITFIELDS,  // Bitmasks with alpha?
         BI_CMYK,            // None
         BI_CMYKRLE8,
         BI_CMYKRLE4,
