@@ -305,6 +305,19 @@ int BmpImage::_readBitmapInfoHeader()
         return 1;
     }
 
+    // If we have bitmasks
+    if (m_compMethod == CompressionMethod::BI_BITFIELDS)
+    {
+        std::memcpy(&m_rBitmask, m_buffer+m_bitmapOffset-12+0, 4);
+        std::memcpy(&m_gBitmask, m_buffer+m_bitmapOffset-12+4, 4);
+        std::memcpy(&m_bBitmask, m_buffer+m_bitmapOffset-12+8, 4);
+
+        std::cout << "Bitmasks: " << '\n' <<
+            "\tR: " << std::bitset<sizeof(m_rBitmask)*8>(m_rBitmask) << '\n' <<
+            "\tG: " << std::bitset<sizeof(m_gBitmask)*8>(m_gBitmask) << '\n' <<
+            "\tB: " << std::bitset<sizeof(m_bBitmask)*8>(m_bBitmask) << '\n';
+    }
+
     m_rowSize = std::ceil(m_bitsPerPixel * m_bitmapWidthPx / 32.0) * 4;
 
     return 0;
@@ -594,6 +607,10 @@ int BmpImage::_render16BitImage(uint8_t* pixelArray, int windowWidth, int window
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
+            uint8_t colorR{};
+            uint8_t colorG{};
+            uint8_t colorB{};
+
             if (m_compMethod == CompressionMethod::BI_RGB) // No palette, no bitmask, just simple RGB
             {
                 // 5 bits/color component
@@ -605,16 +622,23 @@ int BmpImage::_render16BitImage(uint8_t* pixelArray, int windowWidth, int window
                 uint8_t bVal{(uint8_t)(m_buffer[m_bitmapOffset + i + 0] & 0b00011111)};
 
                 //        rVal / 31.0f * 255, gVal / 31.0f * 255, bVal / 31.0f * 255, 255);
-                drawPointAt(pixelArray, textureWidth, xPos, yPos, {rVal << 3 | 7, gVal << 3 | 7, bVal << 3 | 7});
+                colorR = rVal << 3 | 7;
+                colorG = gVal << 3 | 7;
+                colorB = bVal << 3 | 7;
             }
-            else if (m_compMethod == CompressionMethod::BI_BITFIELDS) // RGB with bitmask, can have palette(?)
+            else if (m_compMethod == CompressionMethod::BI_BITFIELDS) // RGB with bitmask
             {
-                // TODO: Implement
+                uint16_t bytes{
+                    uint16_t(
+                    uint16_t(m_buffer[m_bitmapOffset + i + 1]) << 8 |
+                    uint16_t(m_buffer[m_bitmapOffset + i + 0]))};
+
+                colorR = float(bytes & m_rBitmask) / m_rBitmask * 255;
+                colorG = float(bytes & m_gBitmask) / m_gBitmask * 255;
+                colorB = float(bytes & m_bBitmask) / m_bBitmask * 255;
             }
-            else // No bitmask, paletted image (8 bit/color?)
-            {
-                // TODO: Implement
-            }
+
+            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
