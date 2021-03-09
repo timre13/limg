@@ -177,8 +177,6 @@ int BmpImage::_readBitmapCoreHeader()
         return 1;
     }
 
-    m_rowSize = std::ceil(m_bitsPerPixel * m_bitmapWidthPx / 32.0) * 4;
-
     return 0;
 }
 
@@ -336,8 +334,6 @@ int BmpImage::_readBitmapInfoHeader()
         if (m_hasAlphaBitmask)
             std::cout << "\tA: " << std::bitset<sizeof(m_aBitmask)*8>(m_aBitmask) << '\n';
     }
-
-    m_rowSize = std::ceil(m_bitsPerPixel * m_bitmapWidthPx / 32.0) * 4;
 
     return 0;
 }

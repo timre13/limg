@@ -60,7 +60,6 @@ private:
     int32_t m_imageHResPpm{};
     int32_t m_imageVResPpm{};
     uint32_t m_numOfPaletteColors{};
-    unsigned int m_rowSize{};
     uint32_t m_rBitmask{};
     uint32_t m_gBitmask{};
     uint32_t m_bBitmask{};
