@@ -629,6 +629,7 @@ int BmpImage::_render16BitImage(uint8_t* pixelArray, int windowWidth, int window
             uint8_t colorR{};
             uint8_t colorG{};
             uint8_t colorB{};
+            uint8_t colorA{255};
 
             if (m_compMethod == CompressionMethod::BI_RGB) // No palette, no bitmask, just simple RGB
             {
@@ -652,12 +653,17 @@ int BmpImage::_render16BitImage(uint8_t* pixelArray, int windowWidth, int window
                     uint16_t(m_buffer[m_bitmapOffset + i + 1]) << 8 |
                     uint16_t(m_buffer[m_bitmapOffset + i + 0]))};
 
-                colorR = float(bytes & m_rBitmask) / m_rBitmask * 255;
-                colorG = float(bytes & m_gBitmask) / m_gBitmask * 255;
-                colorB = float(bytes & m_bBitmask) / m_bBitmask * 255;
+                if (m_rBitmask)
+                    colorR = float(bytes & m_rBitmask) / m_rBitmask * 255;
+                if (m_gBitmask)
+                    colorG = float(bytes & m_gBitmask) / m_gBitmask * 255;
+                if (m_bBitmask)
+                    colorB = float(bytes & m_bBitmask) / m_bBitmask * 255;
+                if (m_aBitmask)
+                    colorA = float(bytes & m_aBitmask) / m_aBitmask * 255;
             }
 
-            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
         }
 
         // If the last pixel of the line
