@@ -129,6 +129,8 @@ int main(int argc, char** argv)
         return renderStatus;
     }
 
+    SDL_SetWindowTitle(window, ("LIMG - "+image->getFilename()).c_str());
+
     bool isRunning{true};
     bool isRedrawNeeded{};
     bool isFullscreen{};

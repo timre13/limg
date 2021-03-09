@@ -27,13 +27,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <iostream>
+#include <string>
 #include <SDL2/SDL.h>
 
 class Image
 {
+protected:
+        std::string m_filePath;
 public:
     Image() {}
     virtual int open(const std::string &filepath) = 0;
     virtual int render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const = 0;
+    virtual inline std::string getFilename() const { return m_filePath; }
+
     virtual ~Image();
 };

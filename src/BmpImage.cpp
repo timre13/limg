@@ -340,6 +340,8 @@ int BmpImage::_readBitmapInfoHeader()
 
 int BmpImage::open(const std::string &filepath)
 {
+    m_filePath.clear();
+
     FILE *fileObject{fopen(filepath.c_str(), "rb")};
     if (!fileObject) // If failed to open
     {
@@ -452,6 +454,7 @@ int BmpImage::open(const std::string &filepath)
         return 1;
     }
 
+    m_filePath = filepath;
     std::cout << "Image loaded" << '\n';
     m_isInitialized = true;
 
