@@ -783,8 +783,8 @@ int BmpImage::_render32BitImage(uint8_t* pixelArray, int windowWidth, int window
              * Add padding to the offset:
              * Every line needs to be padded to a multiple of 4 with additional bytes at the end.
              */
-            // FIXME: Fix this
-            i += m_bitmapWidthPx % 4;
+            if (m_bitmapWidthPx / 4 % 4)
+                i += 4 - m_bitmapWidthPx / 4 % 4 - 1; // But why?
 
             xPos = 0;
             --yPos;
