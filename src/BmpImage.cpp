@@ -308,14 +308,33 @@ int BmpImage::_readBitmapInfoHeader()
     // If we have bitmasks
     if (m_compMethod == CompressionMethod::BI_BITFIELDS)
     {
-        std::memcpy(&m_rBitmask, m_buffer+m_bitmapOffset-12+0, 4);
-        std::memcpy(&m_gBitmask, m_buffer+m_bitmapOffset-12+4, 4);
-        std::memcpy(&m_bBitmask, m_buffer+m_bitmapOffset-12+8, 4);
+        switch (m_dibHeaderSize)
+        {
+        // BITMAPV3INFOHEADER added support for alpha bitmask,
+        // the later versions also support it
+        case BMP_BITMAPV3INFOHEADER_SIZE:
+        case BMP_BITMAPV4HEADER_SIZE:
+        case BMP_BITMAPV5HEADER_SIZE:
+            m_hasAlphaBitmask = true;
+            break;
+        defult:
+            // Older header
+            m_hasAlphaBitmask = false;
+            break;
+        }
+
+        std::memcpy(&m_rBitmask, m_buffer+m_bitmapOffset-(m_hasAlphaBitmask ? 16 : 12)+0, 4);
+        std::memcpy(&m_gBitmask, m_buffer+m_bitmapOffset-(m_hasAlphaBitmask ? 16 : 12)+4, 4);
+        std::memcpy(&m_bBitmask, m_buffer+m_bitmapOffset-(m_hasAlphaBitmask ? 16 : 12)+8, 4);
+        if (m_hasAlphaBitmask)
+            std::memcpy(&m_aBitmask, m_buffer+m_bitmapOffset-16+12, 4);
 
         std::cout << "Bitmasks: " << '\n' <<
             "\tR: " << std::bitset<sizeof(m_rBitmask)*8>(m_rBitmask) << '\n' <<
             "\tG: " << std::bitset<sizeof(m_gBitmask)*8>(m_gBitmask) << '\n' <<
             "\tB: " << std::bitset<sizeof(m_bBitmask)*8>(m_bBitmask) << '\n';
+        if (m_hasAlphaBitmask)
+            std::cout << "\tA: " << std::bitset<sizeof(m_aBitmask)*8>(m_aBitmask) << '\n';
     }
 
     m_rowSize = std::ceil(m_bitsPerPixel * m_bitmapWidthPx / 32.0) * 4;
@@ -710,10 +729,43 @@ int BmpImage::_render32BitImage(uint8_t* pixelArray, int windowWidth, int window
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
-            uint8_t colorA{m_buffer[m_bitmapOffset + i + 3]};
-            uint8_t colorR{m_buffer[m_bitmapOffset + i + 2]};
-            uint8_t colorG{m_buffer[m_bitmapOffset + i + 1]};
-            uint8_t colorB{m_buffer[m_bitmapOffset + i + 0]};
+            uint8_t colorA{255};
+            uint8_t colorR{};
+            uint8_t colorG{};
+            uint8_t colorB{};
+
+            if (m_compMethod == CompressionMethod::BI_RGB ||
+                // If the compression method is BI_BITFIELDS and one of the bitmasks is 0,
+                // the image is not bitmasked. The docs don't really say a lot about
+                // alpha bitmasks, so this is just the result of my tests.
+                // TODO: This is probably not the best way
+                (m_compMethod == CompressionMethod::BI_BITFIELDS &&
+                 (m_rBitmask == 0 || m_gBitmask == 0 || m_bBitmask == 0)))
+                // RGB, no bitmask
+            {
+                colorA = m_buffer[m_bitmapOffset + i + 3];
+                colorR = m_buffer[m_bitmapOffset + i + 2];
+                colorG = m_buffer[m_bitmapOffset + i + 1];
+                colorB = m_buffer[m_bitmapOffset + i + 0];
+            }
+            else if (m_compMethod == CompressionMethod::BI_BITFIELDS) // Bitmasks
+            {
+                uint32_t bytes{
+                    uint32_t(
+                    uint32_t(m_buffer[m_bitmapOffset + i + 3]) << 24 |
+                    uint32_t(m_buffer[m_bitmapOffset + i + 2]) << 16 |
+                    uint32_t(m_buffer[m_bitmapOffset + i + 1]) << 8 |
+                    uint32_t(m_buffer[m_bitmapOffset + i + 0]))};
+
+                if (m_rBitmask)
+                    colorR = float(bytes & m_rBitmask) / m_rBitmask * 255;
+                if (m_gBitmask)
+                    colorG = float(bytes & m_gBitmask) / m_gBitmask * 255;
+                if (m_bBitmask)
+                    colorB = float(bytes & m_bBitmask) / m_bBitmask * 255;
+                if (m_aBitmask)
+                    colorA = float(bytes & m_aBitmask) / m_aBitmask * 255;
+            }
 
             drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
         }

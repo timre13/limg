@@ -64,6 +64,8 @@ private:
     uint32_t m_rBitmask{};
     uint32_t m_gBitmask{};
     uint32_t m_bBitmask{};
+    bool m_hasAlphaBitmask{};
+    uint32_t m_aBitmask{};
 
     int _readBitmapCoreHeader();
     int _readBitmapInfoHeader();
