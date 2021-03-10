@@ -16,6 +16,8 @@ ADD_EXECUTABLE(limg
     src/BmpImage.h
     src/BmpImage.cpp
     src/bitmagic.h
+    src/Logger.h
+    src/Logger.cpp
 )
 
 ADD_CUSTOM_TARGET(run

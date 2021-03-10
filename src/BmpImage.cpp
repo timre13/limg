@@ -28,12 +28,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BmpImage.h"
 
+#include "Logger.h"
 #include "bitmagic.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_render.h>
 #include <cerrno>
 #include <ios>
-#include <iostream>
 #include <cstring>
 #include <iomanip>
 #include <stdint.h>
@@ -134,22 +134,22 @@ int BmpImage::_readBitmapCoreHeader()
     std::memcpy(&m_bitmapWidthPx,  m_buffer+BMP_BITMAPCOREHEADER_WIDTH_FIELD_OFFS, 2);
     std::memcpy(&m_bitmapHeightPx, m_buffer+BMP_BITMAPCOREHEADER_HEIGHT_FIELD_OFFS, 2);
     m_bitmapHeightPx = std::abs((int32_t)m_bitmapHeightPx);
-    std::cout << std::dec;
-    std::cout << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << " px" << '\n';
+    Logger::log << std::dec;
+    Logger::log << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << " px" << Logger::End;
     if (m_bitmapWidthPx == 0 || m_bitmapHeightPx == 0)
     {
-        std::cerr << "Zero width/height" << '\n';
+        Logger::err << "Zero width/height" << Logger::End;
         return 1;
     }
     if ((int32_t)m_bitmapWidthPx < 0)
     {
-        std::cerr << "Negative width" << '\n';
+        Logger::err << "Negative width" << Logger::End;
         return 1;
     }
     uint32_t widthTimesHeight{m_bitmapWidthPx * m_bitmapHeightPx};
     if (widthTimesHeight / m_bitmapWidthPx != m_bitmapHeightPx)
     {
-        std::cerr << "Width times height overflows, this is not safe" << '\n';
+        Logger::err << "Width times height overflows, this is not safe" << Logger::End;
         return 1;
     }
 
@@ -157,12 +157,12 @@ int BmpImage::_readBitmapCoreHeader()
     std::memcpy(&colorPlaneNum, m_buffer+BMP_BITMAPCOREHEADER_CPLANE_FIELD_OFFS, 2);
     if (colorPlaneNum != 1)
     {
-        std::cerr << "Color plane number is invalid (not 1)" << '\n';
+        Logger::err << "Color plane number is invalid (not 1)" << Logger::End;
         return 1;
     }
     std::memcpy(&m_bitsPerPixel, m_buffer+BMP_BITMAPCOREHEADER_CDEPTH_FIELD_OFFS, 2);
-    std::cout << "Color depth: " << m_bitsPerPixel << " bits" << '\n';
-    std::cout << std::hex;
+    Logger::log << "Color depth: " << m_bitsPerPixel << " bits" << Logger::End;
+    Logger::log << std::hex;
     switch (m_bitsPerPixel)
     {
     case  1:
@@ -172,8 +172,8 @@ int BmpImage::_readBitmapCoreHeader()
         // OK
         break;
     default:
-        std::cerr << "Invalid color depth, allowed values "
-                "are 1, 4, 8 and 24" << '\n';
+        Logger::err << "Invalid color depth, allowed values "
+                "are 1, 4, 8 and 24" << Logger::End;
         return 1;
     }
 
@@ -185,22 +185,22 @@ int BmpImage::_readBitmapInfoHeader()
     std::memcpy(&m_bitmapWidthPx,  m_buffer+BMP_BITMAPINFOHEADER_WIDTH_FIELD_OFFS, 4);
     std::memcpy(&m_bitmapHeightPx, m_buffer+BMP_BITMAPINFOHEADER_HEIGHT_FIELD_OFFS, 4);
     m_bitmapHeightPx = std::abs((int32_t)m_bitmapHeightPx);
-    std::cout << std::dec;
-    std::cout << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << " px" << '\n';
+    Logger::log << std::dec;
+    Logger::log << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << " px" << Logger::End;
     if (m_bitmapWidthPx == 0 || m_bitmapHeightPx == 0)
     {
-        std::cerr << "Zero width/height" << '\n';
+        Logger::err << "Zero width/height" << Logger::End;
         return 1;
     }
     if ((int32_t)m_bitmapWidthPx < 0)
     {
-        std::cerr << "Negative width" << '\n';
+        Logger::err << "Negative width" << Logger::End;
         return 1;
     }
     uint32_t widthTimesHeight{m_bitmapWidthPx * m_bitmapHeightPx};
     if (widthTimesHeight / m_bitmapWidthPx != m_bitmapHeightPx)
     {
-        std::cerr << "Width times height overflows, this is not safe" << '\n';
+        Logger::err << "Width times height overflows, this is not safe" << Logger::End;
         return 1;
     }
 
@@ -208,12 +208,12 @@ int BmpImage::_readBitmapInfoHeader()
     std::memcpy(&colorPlaneNum, m_buffer+BMP_BITMAPINFOHEADER_CPLANE_FIELD_OFFS, 2);
     if (colorPlaneNum != 1)
     {
-        std::cerr << "Color plane number is invalid (not 1)" << '\n';
+        Logger::err << "Color plane number is invalid (not 1)" << Logger::End;
         return 1;
     }
     std::memcpy(&m_bitsPerPixel, m_buffer+BMP_BITMAPINFOHEADER_CDEPTH_FIELD_OFFS, 2);
-    std::cout << "Color depth: " << m_bitsPerPixel << " bits" << '\n';
-    std::cout << std::hex;
+    Logger::log << "Color depth: " << m_bitsPerPixel << " bits" << Logger::End;
+    Logger::log << std::hex;
     switch (m_bitsPerPixel)
     {
     case  1:
@@ -225,15 +225,15 @@ int BmpImage::_readBitmapInfoHeader()
         // OK
         break;
     default:
-        std::cerr << "Invalid color depth, allowed values "
-                "are 1, 4, 8, 16, 24 and 32" << '\n';
+        Logger::err << "Invalid color depth, allowed values "
+                "are 1, 4, 8, 16, 24 and 32" << Logger::End;
         return 1;
     }
 
     uint32_t compMethodUint{};
     std::memcpy(&compMethodUint, m_buffer+BMP_BITMAPINFOHEADER_COMPMETH_FIELD_OFFS, 4);
-    std::cout << "Compression method: 0x" << compMethodUint <<
-            " / " << compMethodToStr((CompressionMethod)compMethodUint)<< '\n';
+    Logger::log << "Compression method: 0x" << compMethodUint <<
+            " / " << compMethodToStr((CompressionMethod)compMethodUint) << Logger::End;
     m_compMethod = static_cast<CompressionMethod>(compMethodUint);
     // TODO: Implement compression
     switch (m_compMethod)
@@ -242,7 +242,7 @@ int BmpImage::_readBitmapInfoHeader()
     case CompressionMethod::BI_CMYK:
     case CompressionMethod::BI_BITFIELDS:
         // Image is uncompressed
-        std::cout << "Image is not compressed" << '\n';
+        Logger::log << "Image is not compressed" << Logger::End;
         break;
     case CompressionMethod::BI_RLE8:
     case CompressionMethod::BI_RLE4:
@@ -250,27 +250,27 @@ int BmpImage::_readBitmapInfoHeader()
     case CompressionMethod::BI_PNG:
     case CompressionMethod::BI_CMYKRLE8:
     case CompressionMethod::BI_CMYKRLE4:
-        std::cerr << "Image is compressed, unimplemented" << '\n';
+        Logger::err << "Image is compressed, unimplemented" << Logger::End;
         return 1;
     default:
-        std::cerr << "Invalid compression method" << '\n';
+        Logger::err << "Invalid compression method" << Logger::End;
         return 1;
     }
 
     // Only 16 and 32-bit images can have bitmasks
     if (m_compMethod == CompressionMethod::BI_BITFIELDS && (m_bitsPerPixel != 16 && m_bitsPerPixel != 32))
     {
-        std::cerr << "Bitmasks can only be used with 16 or 32-bit images" << '\n';
+        Logger::err << "Bitmasks can only be used with 16 or 32-bit images" << Logger::End;
         return 1;
     }
     if (m_compMethod == CompressionMethod::BI_RLE4 && m_bitsPerPixel != 4)
     {
-        std::cerr << "RLE4 compression is only possible with 4-bit images" << '\n';
+        Logger::err << "RLE4 compression is only possible with 4-bit images" << Logger::End;
         return 1;
     }
     if (m_compMethod == CompressionMethod::BI_RLE8 && m_bitsPerPixel != 8)
     {
-        std::cerr << "RLE8 compression is only possible with 8-bit images" << '\n';
+        Logger::err << "RLE8 compression is only possible with 8-bit images" << Logger::End;
         return 1;
     }
 
@@ -278,19 +278,19 @@ int BmpImage::_readBitmapInfoHeader()
     // Only BI_RGB images can have the size field set to 0
     if (m_compMethod != CompressionMethod::BI_RGB && m_imageSize == 0)
     {
-        std::cerr << "Image is compressed, but size is set to 0" << '\n';
+        Logger::err << "Image is compressed, but size is set to 0" << Logger::End;
         return 1;
     }
-    std::cout << "Size of the image data: " << m_imageSize << '\n';
+    Logger::log << "Size of the image data: " << m_imageSize << Logger::End;
 
     std::memcpy(&m_imageHResPpm, m_buffer+BMP_BITMAPINFOHEADER_HRES_FIELD_OFFS, 4);
     std::memcpy(&m_imageVResPpm, m_buffer+BMP_BITMAPINFOHEADER_VRES_FIELD_OFFS, 4);
-    std::cout << std::dec << "Resolution (Pixel/Metre): " << m_imageHResPpm << "x"
-            << m_imageVResPpm << '\n' << std::hex;
+    Logger::log << std::dec << "Resolution (Pixel/Metre): " << m_imageHResPpm << "x"
+            << m_imageVResPpm << Logger::End << std::hex;
 
     std::memcpy(&m_numOfPaletteColors, m_buffer+BMP_BITMAPINFOHEADER_CNUM_FIELD_OFFS, 4);
-    std::cout << std::dec << "Number of colors in palette: " <<
-            m_numOfPaletteColors << std::hex << '\n';
+    Logger::log << std::dec << "Number of colors in palette: " <<
+            m_numOfPaletteColors << std::hex << Logger::End;
 
     if ((m_bitsPerPixel == 1 && (m_numOfPaletteColors > 2 || m_numOfPaletteColors == 0)) ||
         (m_bitsPerPixel == 4 && m_numOfPaletteColors > 16) ||
@@ -299,7 +299,7 @@ int BmpImage::_readBitmapInfoHeader()
         // If the comp. method is BI_RGB, the palette must be empty
         (m_bitsPerPixel == 16 && m_compMethod == CompressionMethod::BI_RGB && m_numOfPaletteColors))
     {
-        std::cerr << "Invalid palette" << '\n';
+        Logger::err << "Invalid palette" << Logger::End;
         return 1;
     }
 
@@ -327,12 +327,13 @@ int BmpImage::_readBitmapInfoHeader()
         if (m_hasAlphaBitmask)
             std::memcpy(&m_aBitmask, m_buffer+m_bitmapOffset-16+12, 4);
 
-        std::cout << "Bitmasks: " << '\n' <<
+        Logger::log << "Bitmasks: " << '\n' <<
             "\tR: " << std::bitset<sizeof(m_rBitmask)*8>(m_rBitmask) << '\n' <<
             "\tG: " << std::bitset<sizeof(m_gBitmask)*8>(m_gBitmask) << '\n' <<
-            "\tB: " << std::bitset<sizeof(m_bBitmask)*8>(m_bBitmask) << '\n';
+            "\tB: " << std::bitset<sizeof(m_bBitmask)*8>(m_bBitmask);
         if (m_hasAlphaBitmask)
-            std::cout << "\tA: " << std::bitset<sizeof(m_aBitmask)*8>(m_aBitmask) << '\n';
+            Logger::log << "\n\tA: " << std::bitset<sizeof(m_aBitmask)*8>(m_aBitmask);
+        Logger::log << Logger::End;
     }
 
     return 0;
@@ -345,50 +346,50 @@ int BmpImage::open(const std::string &filepath)
     FILE *fileObject{fopen(filepath.c_str(), "rb")};
     if (!fileObject) // If failed to open
     {
-        std::cerr << "Failed to open file: " << std::strerror(errno) << '\n';
+        Logger::err << "Failed to open file: " << std::strerror(errno) << Logger::End;
         return 1;
     }
-    std::cout << "Opened file" << '\n';
+    Logger::log << "Opened file" << Logger::End;
 
     m_buffer = new uint8_t[BUFFER_SIZE];
     auto bytesRead = fread(m_buffer, 1, BUFFER_SIZE, fileObject);
-    std::cout << "Read " << bytesRead << " bytes" << '\n';
+    Logger::log << "Read " << bytesRead << " bytes" << Logger::End;
     fclose(fileObject);
 
-    std::cout << std::hex;
+    Logger::log << std::hex;
 
     //========================== Bitmap file header ============================
 
     if (m_buffer[0] != (BMP_MAGIC_BYTES >> 8) ||
         m_buffer[1] != (BMP_MAGIC_BYTES & 0xff))
     {
-        std::cerr << "Invalid magic bytes" << '\n';
+        Logger::err << "Invalid magic bytes" << Logger::End;
         return 1;
     }
-    std::cout << "Magic bytes OK" << '\n';
+    Logger::log << "Magic bytes OK" << Logger::End;
 
     std::memcpy(&m_fileSize, m_buffer+BMP_SIZE_FIELD_OFFS, 4);
-    std::cout << "File size: 0x" << m_fileSize << '\n';
+    Logger::log << "File size: 0x" << m_fileSize << Logger::End;
     if (m_fileSize != bytesRead)
     {
-        std::cerr << "File size in header is incorrect" << '\n';
+        Logger::err << "File size in header is incorrect" << Logger::End;
         return 1;
     }
 
     std::memcpy(&m_bitmapOffset, m_buffer+BMP_BITMAP_OFFS_FIELD_OFFS, 4);
-    std::cout << "Bitmap offset: 0x" << m_bitmapOffset << '\n';
+    Logger::log << "Bitmap offset: 0x" << m_bitmapOffset << Logger::End;
     if (m_bitmapOffset <= 0x0a || m_bitmapOffset >= m_fileSize)
     {
-        std::cout << toNbo(((uint32_t*)&m_buffer)[0x10]) << '\n';
-        std::cerr << "Invalid bitmap offset" << '\n';
+        Logger::log << toNbo(((uint32_t*)&m_buffer)[0x10]) << Logger::End;
+        Logger::err << "Invalid bitmap offset" << Logger::End;
         return 1;
     }
 
     //============================== DIB Header ================================
 
     std::memcpy(&m_dibHeaderSize, m_buffer+BMP_DIB_HEADER_OFFS, 4);
-    std::cout << "DIB header size: " << std::dec << m_dibHeaderSize << std::hex << '\n';
-    std::cout << "DIB header type: " << dibHeaderSizeToName(m_dibHeaderSize) << '\n';
+    Logger::log << "DIB header size: " << std::dec << m_dibHeaderSize << std::hex << Logger::End;
+    Logger::log << "DIB header type: " << dibHeaderSizeToName(m_dibHeaderSize) << Logger::End;
     // We decide the type of the DIB header using its size
     switch (m_dibHeaderSize)
     {
@@ -450,12 +451,12 @@ int BmpImage::open(const std::string &filepath)
     }
 
     default:
-        std::cerr << "Unimplemented or invalid DIB header size" << '\n';
+        Logger::err << "Unimplemented or invalid DIB header size" << Logger::End;
         return 1;
     }
 
     m_filePath = filepath;
-    std::cout << "Image loaded" << '\n';
+    Logger::log << "Image loaded" << Logger::End;
     m_isInitialized = true;
 
     return 0;
@@ -482,7 +483,7 @@ int BmpImage::_render1BitImage(uint8_t* pixelArray, int windowWidth, int windowH
 
                 if (paletteI >= m_numOfPaletteColors)
                 {
-                    std::cerr << "Invalid color index while rendering 1-bit image: " << (int)paletteI << '\n';
+                    Logger::err << "Invalid color index while rendering 1-bit image: " << (int)paletteI << Logger::End;
                     return 1;
                 }
 
@@ -492,7 +493,7 @@ int BmpImage::_render1BitImage(uint8_t* pixelArray, int windowWidth, int windowH
             }
             else // No palette, error (?)
             {
-                std::cerr << "1-bit image without a palette" << '\n';
+                Logger::err << "1-bit image without a palette" << Logger::End;
                 return 1;
             }
             drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
@@ -537,7 +538,7 @@ int BmpImage::_render4BitImage(uint8_t* pixelArray, int windowWidth, int windowH
             // if not specified, default to 2^4
             if ((m_numOfPaletteColors && paletteI >= m_numOfPaletteColors) || (paletteI >= 16))
             {
-                std::cerr << "Invalid color index while rendering 4-bit image: " << (int)paletteI << '\n';
+                Logger::err << "Invalid color index while rendering 4-bit image: " << (int)paletteI << Logger::End;
                 return 1;
             }
 
@@ -582,9 +583,9 @@ int BmpImage::_render8BitImage(uint8_t* pixelArray, int windowWidth, int windowH
             uint8_t paletteI{m_buffer[m_bitmapOffset + i]};
             if (m_numOfPaletteColors && paletteI >= m_numOfPaletteColors)
             {
-                std::cerr <<
+                Logger::err <<
                     "Invalid color index while rendering 8-bit image: " << (int)paletteI <<
-                    ", palette only has " << m_numOfPaletteColors << " entries" << '\n';
+                    ", palette only has " << m_numOfPaletteColors << " entries" << Logger::End;
                 return 1;
             }
 
@@ -808,7 +809,7 @@ int BmpImage::render(SDL_Texture* texture, int windowWidth, int windowHeight, in
     int pitch{};
     if (SDL_LockTexture(texture, &lockRect, (void**)&pixelArray, &pitch))
     {
-        std::cerr << "Failed to lock texture: " << SDL_GetError() << '\n';
+        Logger::err << "Failed to lock texture: " << SDL_GetError() << Logger::End;
         return 1;
     }
 
@@ -822,7 +823,7 @@ int BmpImage::render(SDL_Texture* texture, int windowWidth, int windowHeight, in
     case 24: renderStatus = _render24BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
     case 32: renderStatus = _render32BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
     default:
-        std::cerr << "Unimplemented color depth" << '\n';
+        Logger::err << "Unimplemented color depth" << Logger::End;
         SDL_UnlockTexture(texture);
         return 1;
     }

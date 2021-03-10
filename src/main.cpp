@@ -27,6 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "BmpImage.h"
+#include "Logger.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
@@ -49,7 +50,7 @@ int main(int argc, char** argv)
     int openStatus{image->open(argv[1])};
     if (openStatus)
     {
-        std::cerr << "Failed to open image, exiting" << '\n';
+        Logger::err << "Failed to open image, exiting" << Logger::End;
         return openStatus;
     }
 
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
     SDL_DisplayMode displayMode{};
     if (SDL_GetDesktopDisplayMode(0, &displayMode))
     {
-        std::cerr << "SDL_GetDesktopDisplayMode() failed: " << SDL_GetError() << '\n';
+        Logger::warn << "SDL_GetDesktopDisplayMode() failed: " << SDL_GetError() << Logger::End;
         maxWindowWidth = 2000;
         maxWindowHeight = 1500;
     }
@@ -79,14 +80,14 @@ int main(int argc, char** argv)
     )};
     if (!window)
     {
-        std::cerr << "Failed to create window: " << SDL_GetError() << '\n';
+        Logger::err << "Failed to create window: " << SDL_GetError() << Logger::End;
         return 1;
     }
 
     auto renderer{SDL_CreateRenderer(window, -1, 0)};
     if (!renderer)
     {
-        std::cerr << "Failed to create renderer: " << SDL_GetError() << '\n';
+        Logger::err << "Failed to create renderer: " << SDL_GetError() << Logger::End;
         return 1;
     }
 
@@ -103,7 +104,7 @@ int main(int argc, char** argv)
     )};
     if (!texture)
     {
-        std::cerr << "Failed to create texture: " << SDL_GetError() << '\n';
+        Logger::err << "Failed to create texture: " << SDL_GetError() << Logger::End;
         return 1;
     }
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
@@ -204,7 +205,7 @@ int main(int argc, char** argv)
             }
             SDL_Rect srcRect{0, 0, windowWidth, windowHeight};
             if (SDL_RenderCopy(renderer, texture, &srcRect, nullptr))
-                std::cerr << "Failed to copy texture: " << SDL_GetError() << '\n';
+                Logger::err << "Failed to copy texture: " << SDL_GetError() << Logger::End;
             isRedrawNeeded = false;
         }
 
@@ -217,7 +218,7 @@ int main(int argc, char** argv)
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    std::cout << "End" << '\n';
+    Logger::log << "End" << Logger::End;
 
     return 0;
 }
