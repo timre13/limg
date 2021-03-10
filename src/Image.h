@@ -33,12 +33,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class Image
 {
 protected:
-        std::string m_filePath;
+    std::string m_filePath;
+    uint32_t m_bitmapWidthPx{};
+    uint32_t m_bitmapHeightPx{};
+
 public:
     Image() {}
     virtual int open(const std::string &filepath) = 0;
     virtual int render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const = 0;
-    virtual inline std::string getFilename() const { return m_filePath; }
+
+    inline const std::string& getFilepath() const { return m_filePath; }
+    inline uint32_t getWidthPx() const { return m_bitmapWidthPx; };
+    inline uint32_t getHeightPx() const { return m_bitmapHeightPx; };
 
     virtual ~Image();
 };

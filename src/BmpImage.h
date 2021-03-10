@@ -52,8 +52,6 @@ private:
     uint32_t m_fileSize{}; // Size of the whole file in bytes
     uint32_t m_bitmapOffset{};
     uint32_t m_dibHeaderSize{};
-    uint32_t m_bitmapWidthPx{};
-    uint32_t m_bitmapHeightPx{};
     uint16_t m_bitsPerPixel{};
     CompressionMethod m_compMethod{};
     uint32_t m_imageSize{}; // Size of the image in bytes, BI_RGB images can have it 0-ed
@@ -79,9 +77,6 @@ private:
 public:
     virtual int open(const std::string &filepath) override;
     virtual int render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const override;
-
-    inline uint32_t getWidthPx() const { return m_bitmapWidthPx; }
-    inline uint32_t getHeightPx() const { return m_bitmapHeightPx; }
 
     virtual ~BmpImage() override;
 };
