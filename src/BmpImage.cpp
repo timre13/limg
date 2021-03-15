@@ -42,8 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <bitset>
 
-#define BUFFER_SIZE                     1024*1024*100   // Max: 0xffffffff
-#define BMP_MAGIC_BYTES                 0x424d          // BM in ASCII
+#define BMP_MAX_BUFFER_SIZE             -1_u32
+#define BMP_MAGIC_BYTE_1                'B'
+#define BMP_MAGIC_BYTE_2                'M'
 #define BMP_SIZE_FIELD_OFFS             0x02
 #define BMP_BITMAP_OFFS_FIELD_OFFS      0x0a
 #define BMP_DIB_HEADER_OFFS             0x0e
@@ -177,6 +178,20 @@ int BmpImage::_readBitmapCoreHeader()
         return 1;
     }
 
+    if (m_bitmapOffset < BMP_DIB_HEADER_OFFS+m_dibHeaderSize)
+    {
+        Logger::err << "Bitmap cannot be inside the headers" << Logger::End;
+        return 1;
+    }
+    const uint64_t calcImageWNoPadding{(uint64_t)std::ceil(m_bitmapWidthPx*m_bitsPerPixel/8.0)};
+    const uint64_t calcImageSize{(calcImageWNoPadding+calcImageWNoPadding%4)*m_bitmapHeightPx};
+    if (m_fileSize < m_bitmapOffset+calcImageSize||
+        m_fileSize < m_bitmapOffset+m_imageSize)
+    {
+        Logger::err << "Too small file, no room for pixel data" << Logger::End;
+        return 1;
+    }
+
     return 0;
 }
 
@@ -281,7 +296,21 @@ int BmpImage::_readBitmapInfoHeader()
         Logger::err << "Image is compressed, but size is set to 0" << Logger::End;
         return 1;
     }
-    Logger::log << "Size of the image data: " << m_imageSize << Logger::End;
+    Logger::log << "Size of the image data: 0x" << m_imageSize << Logger::End;
+
+    if (m_bitmapOffset < BMP_DIB_HEADER_OFFS+m_dibHeaderSize)
+    {
+        Logger::err << "Bitmap cannot be inside the headers" << Logger::End;
+        return 1;
+    }
+    const uint64_t calcImageWNoPadding{(uint64_t)std::ceil(m_bitmapWidthPx*m_bitsPerPixel/8.0)};
+    const uint64_t calcImageSize{(calcImageWNoPadding+calcImageWNoPadding%4)*m_bitmapHeightPx};
+    if (m_fileSize < m_bitmapOffset+calcImageSize||
+        m_fileSize < m_bitmapOffset+m_imageSize)
+    {
+        Logger::err << "Too small file, no room for pixel data" << Logger::End;
+        return 1;
+    }
 
     std::memcpy(&m_imageHResPpm, m_buffer+BMP_BITMAPINFOHEADER_HRES_FIELD_OFFS, 4);
     std::memcpy(&m_imageVResPpm, m_buffer+BMP_BITMAPINFOHEADER_VRES_FIELD_OFFS, 4);
@@ -351,36 +380,52 @@ int BmpImage::open(const std::string &filepath)
     }
     Logger::log << "Opened file" << Logger::End;
 
-    m_buffer = new uint8_t[BUFFER_SIZE];
-    auto bytesRead = fread(m_buffer, 1, BUFFER_SIZE, fileObject);
-    Logger::log << "Read " << bytesRead << " bytes" << Logger::End;
-    fclose(fileObject);
-
     Logger::log << std::hex;
 
     //========================== Bitmap file header ============================
 
-    if (m_buffer[0] != (BMP_MAGIC_BYTES >> 8) ||
-        m_buffer[1] != (BMP_MAGIC_BYTES & 0xff))
+    uint8_t magicBytes[]{};
+    std::fread(magicBytes, 1, 2, fileObject);
+    if (magicBytes[0] != BMP_MAGIC_BYTE_1 || magicBytes[1] != BMP_MAGIC_BYTE_2)
     {
         Logger::err << "Invalid magic bytes" << Logger::End;
         return 1;
     }
     Logger::log << "Magic bytes OK" << Logger::End;
 
-    std::memcpy(&m_fileSize, m_buffer+BMP_SIZE_FIELD_OFFS, 4);
+    std::fread(&m_fileSize, 1, 4, fileObject);
     Logger::log << "File size: 0x" << m_fileSize << Logger::End;
-    if (m_fileSize != bytesRead)
+    if (m_fileSize > BMP_MAX_BUFFER_SIZE)
     {
-        Logger::err << "File size in header is incorrect" << Logger::End;
+        Logger::err << "File size is greater than `BMP_MAX_BUFFER_SIZE`" << Logger::End;
+        return 1;
+    }
+
+    // Test if there is room for the file header plus the smallest type of DIB header
+    if (m_fileSize < BMP_DIB_HEADER_OFFS + 12)
+    {
+        Logger::err << "File size is too small, no room for headers" << '\n';
+        return 1;
+    }
+
+    // From now it is safe to use the whole file header plus 12 bytes from the DIB header
+
+    m_buffer = new uint8_t[m_fileSize];
+
+    std::rewind(fileObject); // Go to the beginning of the file
+    auto bytesRead = std::fread(m_buffer, 1, m_fileSize, fileObject);
+    Logger::log << "Read 0x" << bytesRead << " bytes" << Logger::End;
+    std::fclose(fileObject);
+    if (bytesRead != m_fileSize)
+    {
+        Logger::err << "Failed to read file" << Logger::End;
         return 1;
     }
 
     std::memcpy(&m_bitmapOffset, m_buffer+BMP_BITMAP_OFFS_FIELD_OFFS, 4);
     Logger::log << "Bitmap offset: 0x" << m_bitmapOffset << Logger::End;
-    if (m_bitmapOffset <= 0x0a || m_bitmapOffset >= m_fileSize)
+    if (m_bitmapOffset >= m_fileSize)
     {
-        Logger::log << toNbo(((uint32_t*)&m_buffer)[0x10]) << Logger::End;
         Logger::err << "Invalid bitmap offset" << Logger::End;
         return 1;
     }
@@ -390,7 +435,15 @@ int BmpImage::open(const std::string &filepath)
     std::memcpy(&m_dibHeaderSize, m_buffer+BMP_DIB_HEADER_OFFS, 4);
     Logger::log << "DIB header size: " << std::dec << m_dibHeaderSize << std::hex << Logger::End;
     Logger::log << "DIB header type: " << dibHeaderSizeToName(m_dibHeaderSize) << Logger::End;
-    // We decide the type of the DIB header using its size
+
+    // Test if there is room for the DIB header
+    if (m_fileSize < BMP_DIB_HEADER_OFFS + m_dibHeaderSize)
+    {
+        Logger::err << "File size is too small, no room for the DIB header" << '\n';
+        return 1;
+    }
+
+    // We identify the type of the DIB header using its size
     switch (m_dibHeaderSize)
     {
     
