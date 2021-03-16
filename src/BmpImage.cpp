@@ -854,6 +854,7 @@ int BmpImage::render(SDL_Texture* texture, int windowWidth, int windowHeight, in
 {
     if (!m_isInitialized)
     {
+        Logger::err << "Cannot draw uninitialized image" << Logger::End;
         return 1;
     }
 
