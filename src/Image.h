@@ -42,7 +42,8 @@ protected:
 public:
     Image() {}
     virtual int open(const std::string &filepath) = 0;
-    virtual int render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const = 0;
+    virtual int render(
+            SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const = 0;
 
     inline const std::string& getFilepath() const { return m_filePath; }
     inline uint32_t getWidthPx() const { return m_bitmapWidthPx; };

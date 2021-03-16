@@ -89,8 +89,9 @@ private:
     int _render32BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
 
 public:
-    virtual int open(const std::string &filepath) override;
-    virtual int render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const override;
+    virtual int open(const std::string& filepath) override;
+    virtual int render(
+            SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const override;
 
     virtual ~BmpImage() override;
 };
