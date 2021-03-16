@@ -30,6 +30,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <vector>
 
+/*
+ * This class can open and render BMP images.
+ *
+ * Used file format specifications:
+ *  https://en.wikipedia.org/wiki/BMP_file_format
+ *  http://www.ece.ualberta.ca/~elliott/ee552/studentAppNotes/2003_w/misc/bmp_file_format/bmp_file_format.htm
+ *  https://entropymine.com/jason/bmpsuite/bmpsuite/html/bmpsuite.html
+ *  http://bmptestsuite.sourceforge.net/
+ *  https://docs.microsoft.com/en-us/previous-versions//dd183376(v=vs.85)
+ *  https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapv4header
+ *  https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapv5header
+ */
 class BmpImage : public Image
 {
 public:
