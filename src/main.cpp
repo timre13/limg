@@ -27,6 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "BmpImage.h"
+#include "PnmImage.h"
 #include "Logger.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
@@ -35,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SDL2/SDL_video.h>
 #include <memory>
 #include <cstring>
+#include <algorithm>
 
 #define INITIAL_WINDOW_WIDTH  10
 #define INITIAL_WINDOW_HEIGHT 10
@@ -46,8 +48,28 @@ int main(int argc, char** argv)
 
     const bool isTestingMode{argc > 2 && std::strcmp(argv[1], "--test")};
 
-    auto image{std::make_unique<BmpImage>()};
-    int openStatus{image->open(argv[1])};
+    std::string filePath{argv[1]};
+    std::string fileExtension{filePath.substr(filePath.find_last_of('.')+1)};
+    std::transform(
+            fileExtension.begin(), fileExtension.end(),
+            fileExtension.begin(),
+            [](char c){ return std::tolower(c); });
+
+    std::unique_ptr<Image> image{};
+    if (fileExtension.compare("bmp") == 0)
+        image = std::make_unique<BmpImage>();
+    else if (fileExtension.compare("pnm") == 0 ||
+             fileExtension.compare("pbm") == 0 ||
+             fileExtension.compare("pgm") == 0 ||
+             fileExtension.compare("ppm") == 0)
+      image = std::make_unique<PnmImage>();
+    else
+    {
+        Logger::err << "Unknown file extension: " << fileExtension << Logger::End;
+        return 1;
+    }
+
+    int openStatus{image->open(filePath)};
     if (openStatus)
     {
         Logger::err << "Failed to open image, exiting" << Logger::End;
