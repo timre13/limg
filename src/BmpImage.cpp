@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BmpImage.h"
 
 #include "Logger.h"
+#include "Gfx.h"
 #include "bitmagic.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_render.h>
@@ -103,32 +104,6 @@ static std::string dibHeaderSizeToName(uint32_t size)
     default:                              return "Unknown/Invalid";
     }
 }
-
-namespace
-{
-
-struct RGBA // Used for drawPointAt()
-{
-    uint8_t r{};
-    uint8_t g{};
-    uint8_t b{};
-    uint8_t a{255};
-};
-
-inline void drawPointAt(
-        uint8_t* pixelArray,
-        int textureWidth,
-        int xPos, int yPos,
-        const RGBA& color)
-{
-    const long long offset{(yPos * textureWidth + xPos) * 4};
-    pixelArray[offset + 0] = color.r;
-    pixelArray[offset + 1] = color.g;
-    pixelArray[offset + 2] = color.b;
-    pixelArray[offset + 3] = color.a;
-}
-
-} // End of namespace
 
 int BmpImage::_readBitmapCoreHeader()
 {
@@ -549,7 +524,7 @@ int BmpImage::_render1BitImage(uint8_t* pixelArray, int windowWidth, int windowH
                 Logger::err << "1-bit image without a palette" << Logger::End;
                 return 1;
             }
-            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -598,7 +573,7 @@ int BmpImage::_render4BitImage(uint8_t* pixelArray, int windowWidth, int windowH
             uint8_t colorR{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2]};
             uint8_t colorG{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1]};
             uint8_t colorB{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0]};
-            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -645,7 +620,7 @@ int BmpImage::_render8BitImage(uint8_t* pixelArray, int windowWidth, int windowH
             uint8_t colorR{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2]};
             uint8_t colorG{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1]};
             uint8_t colorB{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0]};
-            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -716,7 +691,7 @@ int BmpImage::_render16BitImage(uint8_t* pixelArray, int windowWidth, int window
                     colorA = float(bytes & m_aBitmask) / m_aBitmask * 255;
             }
 
-            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
+            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
         }
 
         // If the last pixel of the line
@@ -755,7 +730,7 @@ int BmpImage::_render24BitImage(uint8_t* pixelArray, int windowWidth, int window
             uint8_t colorG{m_buffer[m_bitmapOffset + i + 1]};
             uint8_t colorB{m_buffer[m_bitmapOffset + i + 0]};
 
-            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -826,7 +801,7 @@ int BmpImage::_render32BitImage(uint8_t* pixelArray, int windowWidth, int window
                     colorA = float(bytes & m_aBitmask) / m_aBitmask * 255;
             }
 
-            drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
+            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
         }
 
         // If the last pixel of the line
