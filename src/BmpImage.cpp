@@ -359,7 +359,7 @@ int BmpImage::open(const std::string &filepath)
 
     //========================== Bitmap file header ============================
 
-    uint8_t magicBytes[]{};
+    uint8_t magicBytes[2]{};
     std::fread(magicBytes, 1, 2, fileObject);
     if (magicBytes[0] != BMP_MAGIC_BYTE_1 || magicBytes[1] != BMP_MAGIC_BYTE_2)
     {
