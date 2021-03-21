@@ -53,6 +53,56 @@ static std::string pnmTypeToStr(PnmImage::PnmType type)
     }
 }
 
+void PnmImage::fetchImageSize()
+{
+    m_headerEndOffset = 2; // Skip the magic number
+
+    // Skip whitespace
+    while (m_headerEndOffset < m_fileSize && std::isspace(m_buffer[m_headerEndOffset]))
+        ++m_headerEndOffset;
+
+    // Skip comments
+    while (m_buffer[m_headerEndOffset] == '#')
+    {
+        while (m_headerEndOffset < m_fileSize && m_buffer[m_headerEndOffset] != '\n')
+            ++m_headerEndOffset;
+        ++m_headerEndOffset;
+    }
+
+    std::stringstream ss{};
+
+    // Get width
+    while (m_headerEndOffset < m_fileSize && !std::isspace(m_buffer[m_headerEndOffset]))
+    {
+        ss << m_buffer[m_headerEndOffset];
+        ++m_headerEndOffset;
+    }
+    ss >> m_bitmapWidthPx;
+    ss.clear(); // Clear EOF flag
+
+    // Skip whitespace
+    while (m_headerEndOffset < m_fileSize && std::isspace(m_buffer[m_headerEndOffset]))
+        ++m_headerEndOffset;
+
+    // Skip comments
+    while (m_buffer[m_headerEndOffset] == '#')
+    {
+        while (m_headerEndOffset < m_fileSize && m_buffer[m_headerEndOffset] != '\n')
+            ++m_headerEndOffset;
+        ++m_headerEndOffset;
+    }
+
+    // Get height
+    while (m_headerEndOffset < m_fileSize && !std::isspace(m_buffer[m_headerEndOffset]))
+    {
+        ss << m_buffer[m_headerEndOffset];
+        ++m_headerEndOffset;
+    }
+    ss >> m_bitmapHeightPx;
+
+    Logger::log << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << Logger::End;
+}
+
 int PnmImage::open(const std::string& filepath)
 {
     m_filePath.clear();
@@ -76,20 +126,6 @@ int PnmImage::open(const std::string& filepath)
     m_type = PnmType(pnmTypeChars[1] - '1');
     Logger::log << "PNM type: " << pnmTypeToStr(m_type) << Logger::End;
 
-    std::string currentLine{};
-    std::getline(fileObject, currentLine);
-    while (std::getline(fileObject, currentLine))
-    {
-        if (currentLine.empty() || currentLine[0] == '#')
-            continue;
-
-        std::stringstream currentLineSs{currentLine};
-        currentLineSs >> m_bitmapWidthPx;
-        currentLineSs >> m_bitmapHeightPx;
-        break;
-    }
-    Logger::log << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << Logger::End;
-
     fileObject.seekg(0, std::ios::end);
     std::ios::pos_type fileSize{fileObject.tellg()};
     // If greater than the max 32-bit value (m_fileSize is 32-bit)
@@ -105,6 +141,9 @@ int PnmImage::open(const std::string& filepath)
     fileObject.seekg(0, std::ios::beg);
     fileObject.read((char*)m_buffer, m_fileSize);
     fileObject.close();
+
+    // Fill m_bitmapWidthPx, m_bitmapHeightPx and m_headerEndOffset
+    fetchImageSize();
 
     m_filePath = filepath;
     Logger::log << "Image loaded" << Logger::End;
@@ -130,55 +169,35 @@ int PnmImage::render(
         return 1;
     }
 
-    uint32_t offset{1};
+    uint32_t offset{m_headerEndOffset}; // Skip header
     uint32_t xPos{};
     uint32_t yPos{};
     while (offset < m_fileSize)
     {
-        std::string line{};
-
-        // Get one line
-        while (offset < m_fileSize && m_buffer[offset] != '\n')
-        {
-            line += m_buffer[offset++];
-        }
-        if (m_buffer[offset] == '\n')
-        {
-            ++offset; // Skip newline
-        }
-
-        if (line.empty())
-        {
-            ++offset;
-            continue;
-        }
-
         // Handle comments
-        if (line[0] == '#')
+        if (m_buffer[offset] == '#')
         {
-            char currChar{};
-            do
+            Logger::log << "Comment: \"";
+            while (m_buffer[offset] != '\n')
             {
-                currChar = m_buffer[offset];
+                Logger::log << m_buffer[offset];
                 ++offset;
             }
-            while (offset < m_fileSize && currChar != '\n');
-
+            ++offset;
+            Logger::log << "\"" << Logger::End;
             continue;
         }
+
+        uint8_t currByte{m_buffer[offset]};
 
         switch (m_type)
         {
             case PnmType::PBM_Ascii:
             {
-                for (size_t i{}; i < line.size(); ++i)
+                if (xPos < windowWidth && yPos < windowHeight)
                 {
-                    if (xPos < windowWidth && yPos < windowHeight)
+                    if (!std::isspace(currByte))
                     {
-                        uint8_t currByte{(uint8_t)line[i]};
-                        if (std::isspace(currByte))
-                            continue;
-
                         if (currByte != '0' && currByte != '1')
                             Logger::warn << "Invalid value while rendering Plain PNM image:" <<
                                 " as char: " << (char)currByte <<
@@ -206,6 +225,8 @@ int PnmImage::render(
                 SDL_UnlockTexture(texture);
                 return 1;
         }
+
+        ++offset;
     }
 
 end_of_func:

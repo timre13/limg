@@ -58,7 +58,14 @@ private:
     bool m_isInitialized{};
     std::string m_filePath{};
     PnmType m_type{};
+    /*
+     * The first byte after the bitmap size values.
+     * Makes it easy to skip the header when rendering.
+     */
+    uint32_t m_headerEndOffset{};
     uint8_t* m_buffer{};
+
+    virtual void fetchImageSize();
 
 public:
     virtual int open(const std::string &filepath) override;
