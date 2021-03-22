@@ -53,7 +53,7 @@ static std::string pnmTypeToStr(PnmImage::PnmType type)
     }
 }
 
-void PnmImage::fetchImageSize()
+int PnmImage::fetchImageSize()
 {
     m_headerEndOffset = 2; // Skip the magic number
 
@@ -101,6 +101,38 @@ void PnmImage::fetchImageSize()
     ss >> m_bitmapHeightPx;
 
     Logger::log << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << Logger::End;
+
+    if (m_type == PnmType::PGM_Ascii ||
+        m_type == PnmType::PGM_Bin)
+    {
+        ss.clear(); // Clear EOF flag
+
+        // Skip comments
+        while (m_buffer[m_headerEndOffset] == '#')
+        {
+            while (m_headerEndOffset < m_fileSize && m_buffer[m_headerEndOffset] != '\n')
+                ++m_headerEndOffset;
+            ++m_headerEndOffset;
+        }
+        ++m_headerEndOffset;
+
+        // Get the max grayscale value
+        while (m_headerEndOffset < m_fileSize && !std::isspace(m_buffer[m_headerEndOffset]))
+        {
+            ss << m_buffer[m_headerEndOffset];
+            ++m_headerEndOffset;
+        }
+        ss >> m_maxPixelVal;
+
+        Logger::log << "Max grayscale value: " << m_maxPixelVal << Logger::End;
+        if (m_maxPixelVal == 0)
+        {
+            Logger::err << "Max grayscale value is set to zero" << Logger::End;
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 int PnmImage::open(const std::string& filepath)
@@ -143,7 +175,8 @@ int PnmImage::open(const std::string& filepath)
     fileObject.close();
 
     // Fill m_bitmapWidthPx, m_bitmapHeightPx and m_headerEndOffset
-    fetchImageSize();
+    if (fetchImageSize())
+        return 1;
 
     m_filePath = filepath;
     Logger::log << "Image loaded" << Logger::End;
@@ -172,6 +205,7 @@ int PnmImage::render(
     uint32_t offset{m_headerEndOffset}; // Skip header
     uint32_t xPos{};
     uint32_t yPos{};
+    std::stringstream ss{};
     while (offset < m_fileSize)
     {
         // Handle comments
@@ -216,6 +250,40 @@ int PnmImage::render(
                                 goto end_of_func; // We are done
                         }
                     }
+                }
+                break;
+            } // End of case
+
+            case PnmType::PGM_Ascii:
+            {
+                if (std::isspace(currByte))
+                {
+                    // This character (a whitespace) is the end of the current pixel value,
+                    // so convert the whole value to int
+                    uint16_t currValue{};
+                    ss.clear();
+                    ss >> currValue;
+
+                    if (xPos < windowWidth && yPos < windowHeight)
+                    {
+                        uint8_t colorVal{uint8_t((float)currValue / m_maxPixelVal * 255)};
+                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                    }
+
+                    ++xPos;
+                    if (xPos >= m_bitmapWidthPx)
+                    {
+                        xPos = 0;
+                        ++yPos;
+                        if (yPos >= m_bitmapHeightPx)
+                            goto end_of_func; // We are done
+                    }
+                }
+                else
+                {
+                    ss.clear();
+                    // Add a new digit to the stream
+                    ss << m_buffer[offset];
                 }
                 break;
             } // End of case

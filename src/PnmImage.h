@@ -63,9 +63,14 @@ private:
      * Makes it easy to skip the header when rendering.
      */
     uint32_t m_headerEndOffset{};
+    /*
+     * The maximum possible value of a pixel.
+     * Used for grayscale images.
+     */
+    uint16_t m_maxPixelVal{};
     uint8_t* m_buffer{};
 
-    virtual void fetchImageSize();
+    virtual int fetchImageSize();
 
 public:
     virtual int open(const std::string &filepath) override;
