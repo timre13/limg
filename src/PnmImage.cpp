@@ -103,7 +103,9 @@ int PnmImage::fetchImageSize()
     Logger::log << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << Logger::End;
 
     if (m_type == PnmType::PGM_Ascii ||
-        m_type == PnmType::PGM_Bin)
+        m_type == PnmType::PGM_Bin ||
+        m_type == PnmType::PPM_Ascii ||
+        m_type == PnmType::PPM_Bin)
     {
         ss.clear(); // Clear EOF flag
 
@@ -116,18 +118,19 @@ int PnmImage::fetchImageSize()
         }
         ++m_headerEndOffset;
 
-        // Get the max grayscale value
+        // Get the max grayscale/color value
         while (m_headerEndOffset < m_fileSize && !std::isspace(m_buffer[m_headerEndOffset]))
         {
             ss << m_buffer[m_headerEndOffset];
             ++m_headerEndOffset;
         }
+        ++m_headerEndOffset;
         ss >> m_maxPixelVal;
 
-        Logger::log << "Max grayscale value: " << m_maxPixelVal << Logger::End;
+        Logger::log << "Max grayscale/color value: " << m_maxPixelVal << Logger::End;
         if (m_maxPixelVal == 0)
         {
-            Logger::err << "Max grayscale value is set to zero" << Logger::End;
+            Logger::err << "Max grayscale/color value is set to zero" << Logger::End;
             return 1;
         }
     }
@@ -277,6 +280,70 @@ int PnmImage::render(
                         ++yPos;
                         if (yPos >= m_bitmapHeightPx)
                             goto end_of_func; // We are done
+                    }
+                }
+                else
+                {
+                    ss.clear();
+                    // Add a new digit to the stream
+                    ss << m_buffer[offset];
+                }
+                break;
+            } // End of case
+
+            case PnmType::PPM_Ascii:
+            {
+                if (std::isspace(currByte))
+                {
+                    /*
+                     * Specifies which value is the currently fetched.
+                     * If 0, this is the red,
+                     * if 1, this is the green,
+                     * if 2, this is the blue component.
+                     */
+                    static short valInRgbI{};
+                    static uint16_t rVal{};
+                    static uint16_t gVal{};
+                    static uint16_t bVal{};
+
+                    ss.clear();
+                    // This character (a whitespace) is the end of the current value,
+                    // so convert the whole value to int
+                    switch (valInRgbI)
+                    {
+                    case 0: ss >> rVal; break;
+                    case 1: ss >> gVal; break;
+                    case 2: ss >> bVal; break;
+                    }
+
+                    // If we have all the values for the color and
+                    // the current pixel is visible
+                    if (valInRgbI == 2 && xPos < windowWidth && yPos < windowHeight)
+                    {
+                        uint8_t colorR{uint8_t((float)rVal / m_maxPixelVal * 255)};
+                        uint8_t colorG{uint8_t((float)gVal / m_maxPixelVal * 255)};
+                        uint8_t colorB{uint8_t((float)bVal / m_maxPixelVal * 255)};
+                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+                    }
+
+                    if (valInRgbI >= 2)
+                    {
+                        // Next time we start a new color, so we get red then
+                        valInRgbI = 0;
+
+                        ++xPos;
+                        if (xPos >= m_bitmapWidthPx)
+                        {
+                            xPos = 0;
+                            ++yPos;
+                            if (yPos >= m_bitmapHeightPx)
+                                goto end_of_func; // We are done
+                        }
+                    }
+                    else
+                    {
+                        // Next time we get the next color component
+                        ++valInRgbI;
                     }
                 }
                 else
