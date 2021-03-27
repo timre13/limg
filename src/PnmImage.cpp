@@ -211,8 +211,11 @@ int PnmImage::render(
     std::stringstream ss{};
     while (offset < m_fileSize)
     {
-        // Handle comments
-        if (m_buffer[offset] == '#')
+        // Handle comments if this is an ASCII image
+        if ((m_type == PnmType::PBM_Ascii ||
+             m_type == PnmType::PGM_Ascii ||
+             m_type == PnmType::PPM_Ascii) &&
+            m_buffer[offset] == '#')
         {
             Logger::log << "Comment: \"";
             while (m_buffer[offset] != '\n')
@@ -252,6 +255,30 @@ int PnmImage::render(
                             if (yPos >= m_bitmapHeightPx)
                                 goto end_of_func; // We are done
                         }
+                    }
+                }
+                break;
+            } // End of case
+
+            case PnmType::PBM_Bin:
+            {
+                for (unsigned int i{}; i < 8; ++i)
+                {
+                    // XXX: Implement support for incomplete bytes at the end of lines
+
+                    if (xPos < windowWidth && yPos < windowHeight)
+                    {
+                        uint8_t colorVal{(currByte & (1 << (7 - i))) ? 0_u8 : 255_u8};
+                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                    }
+
+                    ++xPos;
+                    if (xPos >= m_bitmapWidthPx)
+                    {
+                        xPos = 0;
+                        ++yPos;
+                        if (yPos >= m_bitmapHeightPx)
+                            goto end_of_func; // We are done
                     }
                 }
                 break;
