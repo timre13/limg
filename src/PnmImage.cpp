@@ -78,6 +78,12 @@ int PnmImage::fetchImageSize()
         ++m_headerEndOffset;
     }
     ss >> m_bitmapWidthPx;
+    if (m_bitmapWidthPx <= 0)
+    {
+        Logger::err << "Bitmap with zero width" << Logger::End;
+        return 1;
+    }
+
     ss.clear(); // Clear EOF flag
 
     // Skip whitespace
@@ -99,6 +105,11 @@ int PnmImage::fetchImageSize()
         ++m_headerEndOffset;
     }
     ss >> m_bitmapHeightPx;
+    if (m_bitmapHeightPx <= 0)
+    {
+        Logger::err << "Bitmap with zero height" << Logger::End;
+        return 1;
+    }
 
     Logger::log << "Bitmap size: " << m_bitmapWidthPx << "x" << m_bitmapHeightPx << Logger::End;
 
