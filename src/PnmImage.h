@@ -72,6 +72,15 @@ private:
 
     virtual int fetchImageSize();
 
+    /*
+     * Ascii images are rendered by going thru the file char by char and processing it.
+     */
+    int _renderAsciiImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    /*
+     * Binary images are rendered by getting the required number of bytes, not one at a time.
+     */
+    int _renderBinaryImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+
 public:
     virtual int open(const std::string &filepath) override;
     virtual int render(

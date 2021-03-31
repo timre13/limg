@@ -205,6 +205,26 @@ int PnmImage::render(
         return 1;
     }
 
+    int status{};
+    switch (m_type)
+    {
+    case PnmType::PBM_Ascii:
+    case PnmType::PGM_Ascii:
+    case PnmType::PPM_Ascii:
+        status = _renderAsciiImage(pixelArray, windowWidth, windowHeight, textureWidth);
+        break;
+
+    default:
+        status = _renderBinaryImage(pixelArray, windowWidth, windowHeight, textureWidth);
+        break;
+    }
+
+    SDL_UnlockTexture(texture);
+    return status;
+}
+
+int PnmImage::_renderAsciiImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+{
     uint32_t offset{m_headerEndOffset}; // Skip header
     uint32_t xPos{};
     uint32_t yPos{};
@@ -253,32 +273,8 @@ int PnmImage::render(
                             xPos = 0;
                             ++yPos;
                             if (yPos >= m_bitmapHeightPx)
-                                goto end_of_func; // We are done
+                                return 0; // We are done
                         }
-                    }
-                }
-                break;
-            } // End of case
-
-            case PnmType::PBM_Bin:
-            {
-                for (unsigned int i{}; i < 8; ++i)
-                {
-                    // XXX: Implement support for incomplete bytes at the end of lines
-
-                    if (xPos < windowWidth && yPos < windowHeight)
-                    {
-                        uint8_t colorVal{(currByte & (1 << (7 - i))) ? 0_u8 : 255_u8};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
-                    }
-
-                    ++xPos;
-                    if (xPos >= m_bitmapWidthPx)
-                    {
-                        xPos = 0;
-                        ++yPos;
-                        if (yPos >= m_bitmapHeightPx)
-                            goto end_of_func; // We are done
                     }
                 }
                 break;
@@ -306,7 +302,7 @@ int PnmImage::render(
                         xPos = 0;
                         ++yPos;
                         if (yPos >= m_bitmapHeightPx)
-                            goto end_of_func; // We are done
+                            return 0; // We are done
                     }
                 }
                 else
@@ -364,7 +360,7 @@ int PnmImage::render(
                             xPos = 0;
                             ++yPos;
                             if (yPos >= m_bitmapHeightPx)
-                                goto end_of_func; // We are done
+                                return 0; // We are done
                         }
                     }
                     else
@@ -381,18 +377,101 @@ int PnmImage::render(
                 }
                 break;
             } // End of case
-
-            default:
-                Logger::err << "Failed to render image, unimplemented PNM type" << Logger::End;
-                SDL_UnlockTexture(texture);
-                return 1;
         }
 
         ++offset;
     }
 
-end_of_func:
-    SDL_UnlockTexture(texture);
+    return 0;
+}
+
+
+int PnmImage::_renderBinaryImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+{
+    uint32_t xPos{};
+    uint32_t yPos{};
+
+    switch (m_type)
+    {
+        case PnmType::PBM_Bin:
+        {
+            for (uint32_t offset{m_headerEndOffset}; offset < m_fileSize; ++offset)
+            {
+                uint8_t currByte{m_buffer[offset]};
+                for (unsigned int i{}; i < 8; ++i)
+                {
+                    // XXX: Implement support for incomplete bytes at the end of lines
+
+                    if (xPos < windowWidth && yPos < windowHeight)
+                    {
+                        uint8_t colorVal{(currByte & (1 << (7 - i))) ? 0_u8 : 255_u8};
+                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                    }
+
+                    ++xPos;
+                    if (xPos >= m_bitmapWidthPx)
+                    {
+                        xPos = 0;
+                        ++yPos;
+                        if (yPos >= m_bitmapHeightPx)
+                            return 0; // We are done
+                    }
+                }
+            }
+            break;
+        } // End of case
+
+        case PnmType::PGM_Bin:
+        {
+            if (m_maxPixelVal < 256) // 1 byte values
+            {
+                for (uint32_t offset{m_headerEndOffset}; offset < m_fileSize; ++offset)
+                {
+                    uint8_t currByte{m_buffer[offset]};
+
+                    if (xPos < windowWidth && yPos < windowHeight)
+                    {
+                        uint8_t colorVal{uint8_t((float)currByte / m_maxPixelVal * 255)};
+                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                    }
+
+                    ++xPos;
+                    if (xPos >= m_bitmapWidthPx)
+                    {
+                        xPos = 0;
+                        ++yPos;
+                        if (yPos >= m_bitmapHeightPx)
+                            return 0; // We are done
+                    }
+                }
+            }
+            else // 2 byte values
+            {
+                for (uint32_t offset{m_headerEndOffset}; offset < m_fileSize; offset += 2)
+                {
+                    uint16_t currWord{uint16_t((uint16_t)m_buffer[offset] << 8 | (uint16_t)m_buffer[offset + 1])};
+
+                    if (xPos < windowWidth && yPos < windowHeight)
+                    {
+                        uint8_t colorVal{uint8_t((float)currWord / m_maxPixelVal * 255)};
+                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                    }
+
+                    ++xPos;
+                    if (xPos >= m_bitmapWidthPx)
+                    {
+                        xPos = 0;
+                        ++yPos;
+                        if (yPos >= m_bitmapHeightPx)
+                            return 0; // We are done
+                    }
+                }
+            }
+            break;
+        } // End of case
+
+    }
+
     return 0;
 }
 
