@@ -75,16 +75,21 @@ private:
     /*
      * Ascii images are rendered by going thru the file char by char and processing it.
      */
-    int _renderAsciiImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    int _renderAsciiImage(
+            uint8_t* pixelArray,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
     /*
      * Binary images are rendered by getting the required number of bytes, not one at a time.
      */
-    int _renderBinaryImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    int _renderBinaryImage(
+            uint8_t* pixelArray,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
 
 public:
     virtual int open(const std::string &filepath) override;
     virtual int render(
-            SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const override;
+            SDL_Texture* texture,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const override;
 
     virtual ~PnmImage() override;
 };

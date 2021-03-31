@@ -81,17 +81,30 @@ private:
     int _readBitmapCoreHeader();
     int _readBitmapInfoHeader();
 
-    int  _render1BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
-    int  _render4BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
-    int  _render8BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
-    int _render16BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
-    int _render24BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
-    int _render32BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const;
+    int  _render1BitImage(
+            uint8_t* pixelArray,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
+    int  _render4BitImage(
+            uint8_t* pixelArray,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
+    int  _render8BitImage(
+            uint8_t* pixelArray,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
+    int _render16BitImage(
+            uint8_t* pixelArray,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
+    int _render24BitImage(
+            uint8_t* pixelArray,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
+    int _render32BitImage(
+            uint8_t* pixelArray,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
 
 public:
     virtual int open(const std::string& filepath) override;
     virtual int render(
-            SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const override;
+            SDL_Texture* texture,
+            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const override;
 
     virtual ~BmpImage() override;
 };

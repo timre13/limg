@@ -188,7 +188,7 @@ int PnmImage::open(const std::string& filepath)
 }
 
 int PnmImage::render(
-        SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const
+        SDL_Texture* texture, uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     if (!m_isInitialized)
     {
@@ -196,7 +196,7 @@ int PnmImage::render(
         return 1;
     }
 
-    SDL_Rect lockRect{0, 0, windowWidth, windowHeight};
+    SDL_Rect lockRect{0, 0, (int)windowWidth, (int)windowHeight};
     uint8_t* pixelArray{};
     int pitch{};
     if (SDL_LockTexture(texture, &lockRect, (void**)&pixelArray, &pitch))
@@ -223,7 +223,9 @@ int PnmImage::render(
     return status;
 }
 
-int PnmImage::_renderAsciiImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+int PnmImage::_renderAsciiImage(
+        uint8_t* pixelArray,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     uint32_t offset{m_headerEndOffset}; // Skip header
     uint32_t xPos{};
@@ -377,6 +379,9 @@ int PnmImage::_renderAsciiImage(uint8_t* pixelArray, int windowWidth, int window
                 }
                 break;
             } // End of case
+
+            default:
+                break;
         }
 
         ++offset;
@@ -386,7 +391,9 @@ int PnmImage::_renderAsciiImage(uint8_t* pixelArray, int windowWidth, int window
 }
 
 
-int PnmImage::_renderBinaryImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+int PnmImage::_renderBinaryImage(
+        uint8_t* pixelArray,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     uint32_t xPos{};
     uint32_t yPos{};
@@ -527,6 +534,8 @@ int PnmImage::_renderBinaryImage(uint8_t* pixelArray, int windowWidth, int windo
             break;
         } // End of case
 
+        default:
+            break;
     }
 
     return 0;

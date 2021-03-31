@@ -490,12 +490,14 @@ int BmpImage::open(const std::string &filepath)
     return 0;
 }
 
-int BmpImage::_render1BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+int BmpImage::_render1BitImage(
+        uint8_t* pixelArray,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
-    for (uint_fast32_t i{}; yPos != -1; ++i)
+    for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; ++i)
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
@@ -549,12 +551,14 @@ int BmpImage::_render1BitImage(uint8_t* pixelArray, int windowWidth, int windowH
     return 0;
 }
 
-int BmpImage::_render4BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+int BmpImage::_render4BitImage(
+        uint8_t* pixelArray,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
-    for (uint_fast32_t i{}; yPos != -1; ++i)
+    for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; ++i)
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
@@ -599,12 +603,14 @@ int BmpImage::_render4BitImage(uint8_t* pixelArray, int windowWidth, int windowH
     return 0;
 }
 
-int BmpImage::_render8BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+int BmpImage::_render8BitImage(
+        uint8_t* pixelArray,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
    uint_fast32_t xPos{};
    uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
-    for (uint_fast32_t i{}; yPos != -1; ++i)
+    for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; ++i)
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
@@ -645,12 +651,14 @@ int BmpImage::_render8BitImage(uint8_t* pixelArray, int windowWidth, int windowH
     return 0;
 }
 
-int BmpImage::_render16BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+int BmpImage::_render16BitImage(
+        uint8_t* pixelArray,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
-    for (uint_fast32_t i{}; yPos != -1; i += 2)
+    for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; i += 2)
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
@@ -716,12 +724,14 @@ int BmpImage::_render16BitImage(uint8_t* pixelArray, int windowWidth, int window
     return 0;
 }
 
-int BmpImage::_render24BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+int BmpImage::_render24BitImage(
+        uint8_t* pixelArray,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
-    for (uint_fast32_t i{}; yPos != -1; i += 3)
+    for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; i += 3)
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
@@ -754,12 +764,14 @@ int BmpImage::_render24BitImage(uint8_t* pixelArray, int windowWidth, int window
     return 0;
 }
 
-int BmpImage::_render32BitImage(uint8_t* pixelArray, int windowWidth, int windowHeight, int textureWidth) const
+int BmpImage::_render32BitImage(
+        uint8_t* pixelArray,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
-    for (uint_fast32_t i{}; yPos != -1; i += 4)
+    for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; i += 4)
     {
         if (xPos < windowWidth && yPos < windowHeight)
         {
@@ -825,7 +837,9 @@ int BmpImage::_render32BitImage(uint8_t* pixelArray, int windowWidth, int window
 
     return 0;
 }
-int BmpImage::render(SDL_Texture* texture, int windowWidth, int windowHeight, int textureWidth) const
+int BmpImage::render(
+        SDL_Texture* texture,
+        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
 {
     if (!m_isInitialized)
     {
@@ -833,7 +847,7 @@ int BmpImage::render(SDL_Texture* texture, int windowWidth, int windowHeight, in
         return 1;
     }
 
-    SDL_Rect lockRect{0, 0, windowWidth, windowHeight};
+    SDL_Rect lockRect{0, 0, (int)windowWidth, (int)windowHeight};
     uint8_t* pixelArray{};
     int pitch{};
     if (SDL_LockTexture(texture, &lockRect, (void**)&pixelArray, &pitch))

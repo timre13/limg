@@ -78,8 +78,8 @@ int main(int argc, char** argv)
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    int maxWindowWidth{};
-    int maxWindowHeight{};
+    uint32_t maxWindowWidth{};
+    uint32_t maxWindowHeight{};
 
     SDL_DisplayMode displayMode{};
     if (SDL_GetDesktopDisplayMode(0, &displayMode))
