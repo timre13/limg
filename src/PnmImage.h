@@ -56,7 +56,6 @@ public:
 private:
     uint32_t m_fileSize{};
     bool m_isInitialized{};
-    std::string m_filePath{};
     PnmType m_type{};
     /*
      * The first byte after the bitmap size values.
