@@ -470,6 +470,63 @@ int PnmImage::_renderBinaryImage(uint8_t* pixelArray, int windowWidth, int windo
             break;
         } // End of case
 
+        case PnmType::PPM_Bin:
+        {
+            if (m_maxPixelVal < 256) // 1 byte values
+            {
+                for (uint32_t offset{m_headerEndOffset}; offset < m_fileSize; offset += 3)
+                {
+                    uint8_t rVal{m_buffer[offset + 0]};
+                    uint8_t gVal{m_buffer[offset + 1]};
+                    uint8_t bVal{m_buffer[offset + 2]};
+
+                    if (xPos < windowWidth && yPos < windowHeight)
+                    {
+                        uint8_t colorR{uint8_t((float)rVal / m_maxPixelVal * 255)};
+                        uint8_t colorG{uint8_t((float)gVal / m_maxPixelVal * 255)};
+                        uint8_t colorB{uint8_t((float)bVal / m_maxPixelVal * 255)};
+                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+                    }
+
+                    ++xPos;
+                    if (xPos >= m_bitmapWidthPx)
+                    {
+                        xPos = 0;
+                        ++yPos;
+                        if (yPos >= m_bitmapHeightPx)
+                            return 0; // We are done
+                    }
+                }
+            }
+            else // 2 byte values
+            {
+                for (uint32_t offset{m_headerEndOffset}; offset < m_fileSize; offset += 3*2)
+                {
+                    uint16_t rVal{uint16_t((uint16_t)m_buffer[offset + 0] << 8 | (uint16_t)m_buffer[offset + 1])};
+                    uint16_t gVal{uint16_t((uint16_t)m_buffer[offset + 1] << 8 | (uint16_t)m_buffer[offset + 3])};
+                    uint16_t bVal{uint16_t((uint16_t)m_buffer[offset + 4] << 8 | (uint16_t)m_buffer[offset + 5])};
+
+                    if (xPos < windowWidth && yPos < windowHeight)
+                    {
+                        uint8_t colorR{uint8_t((float)rVal / m_maxPixelVal * 255)};
+                        uint8_t colorG{uint8_t((float)gVal / m_maxPixelVal * 255)};
+                        uint8_t colorB{uint8_t((float)bVal / m_maxPixelVal * 255)};
+                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+                    }
+
+                    ++xPos;
+                    if (xPos >= m_bitmapWidthPx)
+                    {
+                        xPos = 0;
+                        ++yPos;
+                        if (yPos >= m_bitmapHeightPx)
+                            return 0; // We are done
+                    }
+                }
+            }
+            break;
+        } // End of case
+
     }
 
     return 0;
