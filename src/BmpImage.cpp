@@ -319,7 +319,7 @@ int BmpImage::_readBitmapInfoHeader()
         case BMP_BITMAPV5HEADER_SIZE:
             m_hasAlphaBitmask = true;
             break;
-        defult:
+        default:
             // Older header
             m_hasAlphaBitmask = false;
             break;
