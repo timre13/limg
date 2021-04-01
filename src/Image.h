@@ -35,7 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class Image
 {
 protected:
+    bool m_isInitialized{};
     std::string m_filePath;
+    uint32_t m_fileSize{}; // Size of the whole file in bytes
+    uint8_t* m_buffer{};
     uint32_t m_bitmapWidthPx{};
     uint32_t m_bitmapHeightPx{};
 

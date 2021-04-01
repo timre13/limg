@@ -61,9 +61,6 @@ public:
     };
 
 private:
-    bool m_isInitialized{};
-    uint8_t* m_buffer{};
-    uint32_t m_fileSize{}; // Size of the whole file in bytes
     uint32_t m_bitmapOffset{};
     uint32_t m_dibHeaderSize{};
     uint16_t m_bitsPerPixel{};

@@ -54,8 +54,6 @@ public:
     };
 
 private:
-    uint32_t m_fileSize{};
-    bool m_isInitialized{};
     PnmType m_type{};
     /*
      * The first byte after the bitmap size values.
@@ -67,7 +65,6 @@ private:
      * Used for grayscale images.
      */
     uint16_t m_maxPixelVal{};
-    uint8_t* m_buffer{};
 
     virtual int fetchImageSize();
 
