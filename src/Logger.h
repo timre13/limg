@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#define LOGGER_USE_COLORS 1
+
 #define LOGGER_COLOR_LOG "\033[94m"
 #define LOGGER_COLOR_WARN "\033[93m"
 #define LOGGER_COLOR_ERR "\033[91m"
@@ -53,15 +55,27 @@ public:
             switch (m_type)
             {
             case Type::Log:
+#ifdef LOGGER_USE_COLORS
                 std::cout << LOGGER_COLOR_LOG << "[INFO]: " << LOGGER_COLOR_RESET;
+#else
+                std::cout << "[INFO]: ";
+#endif
                 break;
 
             case Type::Warning:
+#ifdef LOGGER_USE_COLORS
                 std::cout << LOGGER_COLOR_WARN << "[WARN]: " << LOGGER_COLOR_RESET;
+#else
+                std::cout << "[WARN]: ";
+#endif
                 break;
 
             case Type::Error:
+#ifdef LOGGER_USE_COLORS
                 std::cout << LOGGER_COLOR_ERR << "[ERR]: " << LOGGER_COLOR_RESET;
+#else
+                std::cout << "[ERR]: ";
+#endif
                 break;
             }
 
