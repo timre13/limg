@@ -17,6 +17,10 @@ ADD_EXECUTABLE(limg
     src/BmpImage.cpp
     src/PnmImage.h
     src/PnmImage.cpp
+    src/GifImage.h
+    src/GifImage.cpp
+    src/LzwDecoder.h
+    src/LzwDecoder.cpp
     src/bitmagic.h
     src/Logger.h
     src/Logger.cpp
