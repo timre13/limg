@@ -34,9 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <algorithm>
 #include <cstring>
+#include <bitset>
 
 std::vector<uint8_t> LzwDecoder::getDecompressedData()
 {
+    Logger::log << "Decompressor: Starting decompression of 0x" << m_inputBuffer.size() << " bytes" << Logger::End;
+    Logger::log << "Decompressor: Code size: " << +m_initialCodeSize << Logger::End;
+
     if (m_initialCodeSize < 2 || m_initialCodeSize > 8)
     {
         Logger::err << "Invalid initial LZW code size: " << +m_initialCodeSize << Logger::End;
@@ -45,15 +49,35 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
 
     uint8_t codeSize = m_initialCodeSize;
 
-    unsigned long long currentBitOffset{};
+    uint32_t currentBitOffset{};
 
     /*
      * Extracts `m_codeSize` number of bits from the input buffer.
      */
-    auto extractDataFromBuffer{[this, codeSize, currentBitOffset](){ // -> uint16_t
-        uint16_t output{};
-        std::memcpy(&output, &m_inputBuffer + currentBitOffset / 8, 2);
-        return output >> (7 - codeSize);
+    auto extractDataFromBuffer{[](
+            uint32_t currentBitOffset,
+            uint8_t codeSize,
+            const std::vector<uint8_t> &inputBuffer
+            ){ // -> uint16_t
+
+        uint32_t output{};
+        const uint32_t startByteOffset{currentBitOffset / 8};
+
+        std::memcpy(&output, inputBuffer.data() + startByteOffset, 4);
+
+        //Logger::log << std::dec << currentBitOffset << std::hex << Logger::End;
+
+        output >>= 31 - codeSize - currentBitOffset % 32;
+
+        uint16_t bitmask{};
+        for (int i{}; i < codeSize; ++i)
+            bitmask |= 1 << i;
+
+        output &= bitmask;
+
+        //Logger::log <<  std::bitset<32>(output) << Logger::End;
+
+        return output;
     }};
     
     auto isClearCode{[codeSize](uint16_t value){
@@ -68,9 +92,13 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
 
     std::vector<byteString_t> dictionary;
     byteString_t output;
+    const uint16_t firstPossibleCode = (1 << codeSize) + 2;
 
     for (unsigned long long i{}; i < (1 << codeSize); ++i)
         dictionary.push_back({(uint8_t)i});
+
+    while (dictionary.size() < firstPossibleCode - 1)
+        dictionary.push_back({});
 
     uint16_t prevCode{};
     uint16_t currCode{};
@@ -78,15 +106,7 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
     byteString_t string1;
     byteString_t string2;
 
-    /*
-     * XXX:
-     * https://web.archive.org/web/20160304075538/http://qalle.net/gif89a.php#lzw
-     *  - Implement End of Information code
-     *  - "The first available compression code value is <Clear code> + 2."
-     *  - "The output codes are of variable length, starting at <code size> + 1 bits per code, up to 12 bits per code."
-     */
-
-    prevCode = extractDataFromBuffer();
+    prevCode = extractDataFromBuffer(currentBitOffset, codeSize, m_inputBuffer);
     currentBitOffset += codeSize;
     string1 = dictionary[prevCode];
     string2.push_back(string1[0]);
@@ -94,7 +114,7 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
     output.insert(output.end(), string1.begin(), string1.end());
     while (currentBitOffset / 8 < m_inputBuffer.size())
     {
-        currCode = extractDataFromBuffer();
+        currCode = extractDataFromBuffer(currentBitOffset, codeSize, m_inputBuffer);
         currentBitOffset += codeSize;
 
         if (isClearCode(currCode))
@@ -125,17 +145,17 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
             string1 = dictionary[currCode];
         }
 
-        if (dictionary.size() - 1 > (1ul << codeSize))
-            ++codeSize;
-
         //output.write((const char*)string1.data(), string1.size());
         output.insert(output.end(), string1.begin(), string1.end());
 
         string2 = {string1[0]};
 
-        auto stringToInsert = dictionary[prevCode];
+        byteString_t stringToInsert = dictionary.at(prevCode);
         stringToInsert.insert(stringToInsert.end(), string2.begin(), string2.end());
         dictionary.push_back(stringToInsert);
+
+        if (dictionary.size() == (1ul << codeSize))
+            ++codeSize;
 
         prevCode = currCode;
     }

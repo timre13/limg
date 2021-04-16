@@ -133,36 +133,49 @@ int GifImage::open(const std::string &filepath)
             (m_hasGlobalColorTable ? m_globalColorTableSizeInBytes : 0_u32)};
         offset < m_fileSize;)
     {
-        if (_fetchImageDescriptor(offset))
-            break;
-            //return 1;
-
-        // Go thru the image descriptor
-        offset += 10;
-
-        // Skip the local palette if there is one
-        if (m_imageFrames.size() &&
-            m_imageFrames[m_imageFrames.size() - 1]->imageDescriptor.hasLocalColorTable)
-            offset += m_imageFrames[m_imageFrames.size() - 1]->imageDescriptor.localColorTableSizeInBytes;
-
-
-        // Skip the LZW minimum code size byte
-        ++offset;
-
-        while (offset < m_fileSize)
+        Logger::log << "Separator byte (ASCII): '" << m_buffer[offset] << "' at 0x" << offset << Logger::End;
+        switch (m_buffer[offset])
         {
-            // Skip a sub-block and the size byte
-            offset += m_buffer[offset] + 1;
-            if (m_buffer[offset] == 0) // Block terminator
+        case ',': // Image descriptor ahead
+        {
+            if (_fetchImageDescriptor(offset))
+                return 1;
+
+            // Go thru the image descriptor
+            offset += 10;
+
+            // Skip the local palette if there is one
+            if (m_imageFrames.size() &&
+                m_imageFrames[m_imageFrames.size() - 1]->imageDescriptor.hasLocalColorTable)
+                offset += m_imageFrames[m_imageFrames.size() - 1]->imageDescriptor.localColorTableSizeInBytes;
+
+
+            // Skip the LZW minimum code size byte
+            ++offset;
+
+            while (offset < m_fileSize)
             {
-                Logger::log << "End of a block" << Logger::End;
-                ++offset; // Skip the block terminator
-                goto end_of_block;
+                if (m_buffer[offset] == 0) // Block terminator
+                {
+                    Logger::log << "End of a block" << Logger::End;
+                    ++offset; // Skip the block terminator
+                    break;
+                }
+                // Skip a sub-block and the size byte
+                offset += m_buffer[offset] + 1;
             }
-        }
-end_of_block:
-        ;
+        } // End of case ','
+
+        case ';': // End of data
+        {
+            goto after_loop;
+        } // End of case ';'
+
+        } // End of switch
     }
+    Logger::log << "End of file" << Logger::End;
+
+after_loop:
 
     Logger::log << "Found " << m_imageFrames.size() << " frame(s)" << Logger::End;
     m_bitmapWidthPx = m_logicalScreen.width;
@@ -175,7 +188,6 @@ end_of_block:
 }
 
 int GifImage::_fetchLogicalScreenDescriptor()
-
 {
     if (m_fileSize < 13)
     {
@@ -248,22 +260,6 @@ int GifImage::_fetchImageDescriptor(uint32_t startOffset)
         return 1;
     }
 
-    /*
-     * TODO: Handle extension blocks, too.
-     *
-     * One way to do it:
-     *  Check outside this function if the block is an extension
-     *      if it is, call an another function to handle it,
-     *      if it is an image descriptor, call this function.
-     *      (we wouldn't have to check here the first byte if we did it outside.)
-     */
-    // Every image desctiptor starts with the ',' character
-    if (m_buffer[startOffset] != ',')
-    {
-        Logger::log << "Separator byte: " << m_buffer[startOffset] << Logger::End;
-        return 1; // This is not an image descriptor
-    }
-
     auto imageFrame = new ImageFrame;
     imageFrame->startOffset = startOffset;
     std::memcpy(&imageFrame->imageDescriptor.imageLeftPos, m_buffer + startOffset + 0, 2);
@@ -330,6 +326,7 @@ int GifImage::render(
         return 1;
     }
 
+    // Skip image descriptor
     uint32_t offset{m_imageFrames[0]->startOffset + 10};
 
     // Skip the local palette if there is one
@@ -343,6 +340,8 @@ int GifImage::render(
     {
         uint32_t subBlockSize{m_buffer[offset]};
         ++offset;
+
+        Logger::log << "Buffering a sub-block of 0x" << subBlockSize << " bytes" << Logger::End;
 
         for (int i{}; i < subBlockSize; ++i)
             decoder << m_buffer[offset + i];
@@ -363,7 +362,7 @@ end_of_block:
     unsigned int yPos{};
     for (int i{}; i < decompressedData.size(); ++i)
     {
-        const unsigned long long colorOffset{GIF_AFTER_LOGICAL_SCREEN_DESCRIPTOR_OFFS + decompressedData[i] * 3};
+        const uint32_t colorOffset{GIF_AFTER_LOGICAL_SCREEN_DESCRIPTOR_OFFS + decompressedData[i] * 3};
 
         uint8_t colorR{m_buffer[colorOffset + 0]};
         uint8_t colorG{m_buffer[colorOffset + 1]};
