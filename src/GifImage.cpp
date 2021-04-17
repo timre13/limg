@@ -262,12 +262,13 @@ int GifImage::_fetchImageDescriptor(uint32_t startOffset)
 
     auto imageFrame = new ImageFrame;
     imageFrame->startOffset = startOffset;
-    std::memcpy(&imageFrame->imageDescriptor.imageLeftPos, m_buffer + startOffset + 0, 2);
-    std::memcpy(&imageFrame->imageDescriptor.imageTopPos,  m_buffer + startOffset + 2, 2);
-    std::memcpy(&imageFrame->imageDescriptor.imageWidth,   m_buffer + startOffset + 4, 2);
-    std::memcpy(&imageFrame->imageDescriptor.imageHeight,  m_buffer + startOffset + 6, 2);
+    // Note: We skip the separator byte
+    std::memcpy(&imageFrame->imageDescriptor.imageLeftPos, m_buffer + startOffset + 1, 2);
+    std::memcpy(&imageFrame->imageDescriptor.imageTopPos,  m_buffer + startOffset + 3, 2);
+    std::memcpy(&imageFrame->imageDescriptor.imageWidth,   m_buffer + startOffset + 5, 2);
+    std::memcpy(&imageFrame->imageDescriptor.imageHeight,  m_buffer + startOffset + 7, 2);
 
-    uint8_t flags{m_buffer[startOffset + 8]};
+    uint8_t flags{m_buffer[startOffset + 9]};
     imageFrame->imageDescriptor.hasLocalColorTable = !!(flags & 0b10000000);
     imageFrame->imageDescriptor.isInterlaced       = !!(flags & 0b01000000);
 
