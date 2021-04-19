@@ -62,12 +62,19 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
 
         uint32_t output{};
         const uint32_t startByteOffset{currentBitOffset / 8};
+        const uint8_t bitsToShift{uint8_t(24 - currentBitOffset % 8 - codeSize)};
 
-        std::memcpy(&output, inputBuffer.data() + startByteOffset, 4);
+        // Data extraction:
+        {
+            uint8_t outputBuff[3]{};
+            std::memcpy(&outputBuff, inputBuffer.data() + startByteOffset, 3);
+            output =
+                (uint32_t)outputBuff[0] << 16 |
+                (uint32_t)outputBuff[1] <<  8 |
+                (uint32_t)outputBuff[2] <<  0;
+        }
 
-        //Logger::log << std::dec << currentBitOffset << std::hex << Logger::End;
-
-        output >>= 31 - codeSize - currentBitOffset % 32;
+        output >>= bitsToShift;
 
         uint16_t bitmask{};
         for (int i{}; i < codeSize; ++i)
@@ -75,17 +82,17 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
 
         output &= bitmask;
 
-        //Logger::log <<  std::bitset<32>(output) << Logger::End;
+        //Logger::log << std::bitset<32>(output) << Logger::End;
 
-        return output;
+        return uint16_t(output);
     }};
     
-    auto isClearCode{[codeSize](uint16_t value){
+    auto isClearCode{[](uint16_t value, uint8_t codeSize){
         return value == (1 << codeSize);
     }};
 
-    auto isEndOfInformationCode{[codeSize](uint16_t value){
-        return value == (1 << codeSize) + 1;
+    auto isEndOfInformationCode{[](uint16_t value, uint8_t codeSize){
+        return value == ((1 << codeSize) + 1);
     }};
 
     using byteString_t = std::vector<uint8_t>;
@@ -117,7 +124,7 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
         currCode = extractDataFromBuffer(currentBitOffset, codeSize, m_inputBuffer);
         currentBitOffset += codeSize;
 
-        if (isClearCode(currCode))
+        if (isClearCode(prevCode, codeSize))
         {
             Logger::log << "Decompressor: Clear code found" << Logger::End;
 
@@ -127,11 +134,14 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
             for (unsigned long long i{}; i < (1 << codeSize); ++i)
                 dictionary.push_back({(uint8_t)i});
 
+            prevCode = currCode;
             continue;
         }
-        if (isEndOfInformationCode(currCode))
+        if (isEndOfInformationCode(prevCode, codeSize))
         {
             Logger::log << "Decompressor: End of information code found" << Logger::End;
+
+            prevCode = currCode;
             break;
         }
 
