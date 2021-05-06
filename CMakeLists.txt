@@ -20,6 +20,7 @@ ADD_EXECUTABLE(limg
     src/bitmagic.h
     src/Logger.h
     src/Logger.cpp
+    src/misc.h
 )
 
 ADD_CUSTOM_TARGET(run

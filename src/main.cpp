@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BmpImage.h"
 #include "PnmImage.h"
 #include "Logger.h"
+#include "misc.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
@@ -43,12 +44,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char** argv)
 {
-    if (argc < 2)
-        return 1;
-
     const bool isTestingMode{argc > 2 && std::strcmp(argv[1], "--test")};
 
-    std::string filePath{argv[1]};
+    std::string filePath{};
+    if (argc < 2) // If no file given
+    {
+        // Open the logo image
+
+        std::string parentDir = getExeParentDir();
+        if (parentDir.length())
+            filePath = parentDir + "/../img/icon.bmp";
+        else
+            return 1;
+    }
+    else // If there is file given
+    {
+        // Open it
+        filePath = argv[1];
+    }
     std::string fileExtension{filePath.substr(filePath.find_last_of('.')+1)};
     std::transform(
             fileExtension.begin(), fileExtension.end(),
