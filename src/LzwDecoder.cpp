@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "LzwDecoder.h"
 #include "bitmagic.h"
 #include "Logger.h"
+#include <unordered_map>
 #include <iostream>
 #include <ctime>
 #include <string>
@@ -41,13 +42,18 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
     Logger::log << "Decompressor: Starting decompression of 0x" << m_inputBuffer.size() << " bytes" << Logger::End;
     Logger::log << "Decompressor: Code size: " << +m_initialCodeSize << Logger::End;
 
+    /*
     if (m_initialCodeSize < 2 || m_initialCodeSize > 8)
     {
         Logger::err << "Invalid initial LZW code size: " << +m_initialCodeSize << Logger::End;
         return {};
     }
+    */
 
     uint8_t codeSize = m_initialCodeSize;
+
+    // A string that can contain null-bytes
+    using byteString_t = std::vector<uint8_t>;
 
     uint32_t currentBitOffset{};
 
@@ -57,7 +63,7 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
     auto extractDataFromBuffer{[](
             uint32_t currentBitOffset,
             uint8_t codeSize,
-            const std::vector<uint8_t> &inputBuffer
+            const byteString_t &inputBuffer
             ){ // -> uint16_t
 
         uint32_t output{};
@@ -95,21 +101,15 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
         return value == ((1 << codeSize) + 1);
     }};
 
-    using byteString_t = std::vector<uint8_t>;
-
-    std::vector<byteString_t> dictionary;
     byteString_t output;
-    const uint16_t firstPossibleCode = (1 << codeSize) + 2;
 
-    for (unsigned long long i{}; i < (1 << codeSize); ++i)
-        dictionary.push_back({(uint8_t)i});
+    std::unordered_map<uint16_t, byteString_t> dictionary;
+    for (uint16_t i{}; i < (1 << codeSize); ++i)
+        dictionary[i] = {(uint8_t)i};
 
-    while (dictionary.size() < firstPossibleCode - 1)
-        dictionary.push_back({});
-
+    uint16_t nextPossibleCode = (1 << codeSize) + 2;
     uint16_t prevCode{};
     uint16_t currCode{};
-
     byteString_t string1;
     byteString_t string2;
 
@@ -119,7 +119,7 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
     string2.push_back(string1[0]);
 
     output.insert(output.end(), string1.begin(), string1.end());
-    while (currentBitOffset / 8 < m_inputBuffer.size())
+    while (currentBitOffset < m_inputBuffer.size() * 8)
     {
         currCode = extractDataFromBuffer(currentBitOffset, codeSize, m_inputBuffer);
         currentBitOffset += codeSize;
@@ -131,8 +131,9 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
             // Reset stuff
             codeSize = m_initialCodeSize;
             dictionary.clear();
-            for (unsigned long long i{}; i < (1 << codeSize); ++i)
-                dictionary.push_back({(uint8_t)i});
+            for (uint16_t i{}; i < (1 << codeSize); ++i)
+                dictionary[i] = {(uint8_t)i};
+            nextPossibleCode = (1 << codeSize) + 2;
 
             prevCode = currCode;
             continue;
@@ -145,7 +146,7 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
             break;
         }
 
-        if (currCode >= dictionary.size()) // If the code is NOT in the dictionary
+        if (dictionary.find(currCode) == dictionary.end()) // If the code is NOT in the dictionary
         {
             string1 = dictionary[prevCode];
             string1.insert(string1.end(), string2.begin(), string2.end()); // string1 += string2
@@ -162,10 +163,13 @@ std::vector<uint8_t> LzwDecoder::getDecompressedData()
 
         byteString_t stringToInsert = dictionary.at(prevCode);
         stringToInsert.insert(stringToInsert.end(), string2.begin(), string2.end());
-        dictionary.push_back(stringToInsert);
+        dictionary[nextPossibleCode++] = stringToInsert;
 
         if (dictionary.size() == (1ul << codeSize))
+        {
             ++codeSize;
+            Logger::log << "Incremented code size to " << +codeSize << Logger::End;
+        }
 
         prevCode = currCode;
     }

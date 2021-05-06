@@ -332,7 +332,14 @@ int GifImage::render(
 
     // Skip the local palette if there is one
     if (m_imageFrames.size() && m_imageFrames[m_imageFrames.size() - 1]->imageDescriptor.hasLocalColorTable)
+    {
+        Logger::log << "Skipping local color table" << Logger::End;
         offset += m_imageFrames[m_imageFrames.size() - 1]->imageDescriptor.localColorTableSizeInBytes;
+    }
+    else
+    {
+        Logger::log << "No local color table, not skipping" << Logger::End;
+    }
 
     LzwDecoder decoder{};
     decoder.setCodeSize(m_buffer[offset++]);
@@ -342,7 +349,7 @@ int GifImage::render(
         uint32_t subBlockSize{m_buffer[offset]};
         ++offset;
 
-        Logger::log << "Buffering a sub-block of 0x" << subBlockSize << " bytes" << Logger::End;
+        //Logger::log << "Buffering a sub-block of 0x" << subBlockSize << " bytes" << Logger::End;
 
         for (int i{}; i < subBlockSize; ++i)
             decoder << m_buffer[offset + i];
@@ -363,12 +370,16 @@ end_of_block:
     unsigned int yPos{};
     for (int i{}; i < decompressedData.size(); ++i)
     {
-        const uint32_t colorOffset{GIF_AFTER_LOGICAL_SCREEN_DESCRIPTOR_OFFS + decompressedData[i] * 3};
+        if (xPos < windowWidth && yPos < windowHeight)
+        {
+            // TODO: Support local color table
+            const uint32_t colorOffset{uint32_t(GIF_AFTER_LOGICAL_SCREEN_DESCRIPTOR_OFFS + decompressedData[i] * 3)};
 
-        uint8_t colorR{m_buffer[colorOffset + 0]};
-        uint8_t colorG{m_buffer[colorOffset + 1]};
-        uint8_t colorB{m_buffer[colorOffset + 2]};
-        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            uint8_t colorR{m_buffer[colorOffset + 0]};
+            uint8_t colorG{m_buffer[colorOffset + 1]};
+            uint8_t colorB{m_buffer[colorOffset + 2]};
+            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+        }
 
         ++xPos;
         if (xPos >= m_imageFrames[0]->imageDescriptor.imageWidth)
@@ -376,7 +387,7 @@ end_of_block:
             xPos = 0;
             ++yPos;
             if (yPos >= m_bitmapHeightPx)
-                return 0; // We are done
+                break; // We are done
         }
     }
 
