@@ -47,7 +47,7 @@ public:
     virtual int open(const std::string &filepath) = 0;
     virtual int render(
             SDL_Texture* texture,
-            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const = 0;
+            uint32_t viewportWidth, uint32_t viewportHeight) const = 0;
 
     inline const std::string& getFilepath() const { return m_filePath; }
     inline uint32_t getWidthPx() const { return m_bitmapWidthPx; };

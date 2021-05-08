@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define INITIAL_WINDOW_WIDTH  10
 #define INITIAL_WINDOW_HEIGHT 10
+#define MAX_WINDOW_WIDTH  1900
+#define MAX_WINDOW_HEIGHT 1000
+#define ZOOM_STEP_PERC 5
 
 int main(int argc, char** argv)
 {
@@ -94,26 +97,10 @@ int main(int argc, char** argv)
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    uint32_t maxWindowWidth{};
-    uint32_t maxWindowHeight{};
-
-    SDL_DisplayMode displayMode{};
-    if (SDL_GetDesktopDisplayMode(0, &displayMode))
-    {
-        Logger::warn << "SDL_GetDesktopDisplayMode() failed: " << SDL_GetError() << Logger::End;
-        maxWindowWidth = 2000;
-        maxWindowHeight = 1500;
-    }
-    else
-    {
-        maxWindowWidth = displayMode.w;
-        maxWindowHeight = displayMode.h;
-    }
-
     auto window{SDL_CreateWindow(
             "LIMG",
             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            image->getWidthPx(), image->getHeightPx(),
+            std::min(image->getWidthPx(), (uint32_t)MAX_WINDOW_WIDTH), std::min(image->getHeightPx(), (uint32_t)MAX_WINDOW_HEIGHT),
             SDL_WINDOW_RESIZABLE
     )};
     if (!window)
@@ -132,13 +119,13 @@ int main(int argc, char** argv)
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     SDL_SetWindowMinimumSize(window, 10, 10);
-    SDL_SetWindowMaximumSize(window, maxWindowWidth, maxWindowHeight);
+    SDL_SetWindowMaximumSize(window, MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT);
 
     SDL_Texture* texture{SDL_CreateTexture(
             renderer,
             SDL_PIXELFORMAT_RGBA32,
             SDL_TEXTUREACCESS_STREAMING,
-            maxWindowWidth, maxWindowHeight
+            image->getWidthPx(), image->getHeightPx()
     )};
     if (!texture)
     {
@@ -151,7 +138,7 @@ int main(int argc, char** argv)
     {
         int windowWidth, windowHeight;
         SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-        int renderStatus{image->render(texture, windowWidth, windowHeight, maxWindowWidth)};
+        int renderStatus{image->render(texture, windowWidth, windowHeight)};
         if (renderStatus)
         {
             SDL_DestroyTexture(texture);
@@ -168,12 +155,33 @@ int main(int argc, char** argv)
         return renderStatus;
     }
 
-    SDL_SetWindowTitle(window, ("LIMG - "+image->getFilepath()).c_str());
-
     bool isRunning{true};
     bool isRedrawNeeded{};
     bool isFullscreen{};
     bool useTransparency{true};
+    int windowWidth, windowHeight;
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+    // Set the initial zoom so that the image fits in the window
+    float zoom = std::min(1.0f, std::min((float)MAX_WINDOW_WIDTH / image->getWidthPx(), (float)MAX_WINDOW_HEIGHT / image->getHeightPx()));
+
+    auto updateWindowTitle{[&window, &image, &zoom](){
+        SDL_SetWindowTitle(window,
+                ("LIMG - " + image->getFilepath() +
+                 " (" + std::to_string(image->getWidthPx()) + 'x' + std::to_string(image->getHeightPx()) + ") [" +
+                 std::to_string((int)std::round(zoom * 100 / ZOOM_STEP_PERC) * ZOOM_STEP_PERC) + "%]").c_str());
+    }};
+    updateWindowTitle();
+
+    // Render the whole image
+    int renderStatus{image->render(texture, image->getWidthPx(), image->getHeightPx())};
+    if (renderStatus)
+    {
+        SDL_DestroyTexture(texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return renderStatus;
+    }
 
     while (isRunning)
     {
@@ -197,6 +205,8 @@ int main(int argc, char** argv)
                 case SDLK_f: // Toggle fullscreen
                     isFullscreen = !isFullscreen;
                     SDL_SetWindowFullscreen(window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+                    // Let's not lose focus
+                    SDL_RaiseWindow(window);
                     break;
 
                 case SDLK_t: // Toggle transparency
@@ -207,13 +217,38 @@ int main(int argc, char** argv)
                 }
                 break;
 
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym)
+                {
+                case SDLK_KP_PLUS: // Zoom in
+                    zoom += 0.05;
+                    if (zoom > 1000)
+                        zoom = 1000;
+                    updateWindowTitle();
+                    isRedrawNeeded = true;
+                    break;
+
+                case SDLK_KP_MINUS: // Zoom out
+                    zoom -= 0.05;
+                    if (zoom < ZOOM_STEP_PERC / 100.0)
+                        zoom = ZOOM_STEP_PERC / 100.0;
+                    updateWindowTitle();
+                    isRedrawNeeded = true;
+                    break;
+                }
+                break;
+
             case SDL_WINDOWEVENT:
                 switch (event.window.event)
                 {
+                case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    windowWidth = event.window.data1;
+                    windowHeight = event.window.data2;
+                    //Logger::log << std::dec << "Window size changed to " << windowWidth << 'x' << windowHeight << Logger::End;
+                    [[fallthrough]];
                 case SDL_WINDOWEVENT_SHOWN:
                 case SDL_WINDOWEVENT_MAXIMIZED:
                 case SDL_WINDOWEVENT_MINIMIZED:
-                case SDL_WINDOWEVENT_RESIZED:
                 case SDL_WINDOWEVENT_EXPOSED:
                 case SDL_WINDOWEVENT_RESTORED:
                     isRedrawNeeded = true;
@@ -230,19 +265,12 @@ int main(int argc, char** argv)
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderClear(renderer);
 
-            int windowWidth, windowHeight;
-            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-            int renderStatus{image->render(texture, windowWidth, windowHeight, maxWindowWidth)};
-            if (renderStatus)
-            {
-                SDL_DestroyTexture(texture);
-                SDL_DestroyRenderer(renderer);
-                SDL_DestroyWindow(window);
-                SDL_Quit();
-                return renderStatus;
-            }
-            SDL_Rect srcRect{0, 0, windowWidth, windowHeight};
-            if (SDL_RenderCopy(renderer, texture, &srcRect, nullptr))
+            const int dstRectWidth{int(image->getWidthPx() * zoom)};
+            const int dstRectHeight{int(image->getHeightPx() * zoom)};
+            const SDL_Rect dstRect{
+                windowWidth / 2 - dstRectWidth / 2, windowHeight / 2 - dstRectHeight / 2,
+                dstRectWidth, dstRectHeight};
+            if (SDL_RenderCopy(renderer, texture, nullptr, &dstRect))
                 Logger::err << "Failed to copy texture: " << SDL_GetError() << Logger::End;
             isRedrawNeeded = false;
         }

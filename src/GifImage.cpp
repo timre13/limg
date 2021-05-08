@@ -310,7 +310,7 @@ int GifImage::_fetchImageDescriptor(uint32_t startOffset)
 }
 
 int GifImage::render(
-        SDL_Texture* texture, uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        SDL_Texture* texture, uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     if (!m_isInitialized)
     {
@@ -318,7 +318,7 @@ int GifImage::render(
         return 1;
     }
 
-    SDL_Rect lockRect{0, 0, (int)windowWidth, (int)windowHeight};
+    SDL_Rect lockRect{0, 0, (int)viewportWidth, (int)viewportHeight};
     uint8_t* pixelArray{};
     int pitch{};
     if (SDL_LockTexture(texture, &lockRect, (void**)&pixelArray, &pitch))
@@ -370,7 +370,7 @@ end_of_block:
     unsigned int yPos{};
     for (int i{}; i < decompressedData.size(); ++i)
     {
-        if (xPos < windowWidth && yPos < windowHeight)
+        if (xPos < viewportWidth && yPos < viewportHeight)
         {
             // TODO: Support local color table
             const uint32_t colorOffset{uint32_t(GIF_AFTER_LOGICAL_SCREEN_DESCRIPTOR_OFFS + decompressedData[i] * 3)};
@@ -378,7 +378,7 @@ end_of_block:
             uint8_t colorR{m_buffer[colorOffset + 0]};
             uint8_t colorG{m_buffer[colorOffset + 1]};
             uint8_t colorB{m_buffer[colorOffset + 2]};
-            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB});
         }
 
         ++xPos;

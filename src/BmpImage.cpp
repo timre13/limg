@@ -492,14 +492,14 @@ int BmpImage::open(const std::string &filepath)
 
 int BmpImage::_render1BitImage(
         uint8_t* pixelArray,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
     for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; ++i)
     {
-        if (xPos < windowWidth && yPos < windowHeight)
+        if (xPos < viewportWidth && yPos < viewportHeight)
         {
             uint8_t colorR{};
             uint8_t colorG{};
@@ -526,7 +526,7 @@ int BmpImage::_render1BitImage(
                 Logger::err << "1-bit image without a palette" << Logger::End;
                 return 1;
             }
-            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -553,14 +553,14 @@ int BmpImage::_render1BitImage(
 
 int BmpImage::_render4BitImage(
         uint8_t* pixelArray,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
     for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; ++i)
     {
-        if (xPos < windowWidth && yPos < windowHeight)
+        if (xPos < viewportWidth && yPos < viewportHeight)
         {
             // Use the more significant nibble if the number is even, use the another otherwise
             uint8_t paletteI{
@@ -577,7 +577,7 @@ int BmpImage::_render4BitImage(
             uint8_t colorR{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2]};
             uint8_t colorG{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1]};
             uint8_t colorB{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0]};
-            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -605,14 +605,14 @@ int BmpImage::_render4BitImage(
 
 int BmpImage::_render8BitImage(
         uint8_t* pixelArray,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
    uint_fast32_t xPos{};
    uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
     for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; ++i)
     {
-        if (xPos < windowWidth && yPos < windowHeight)
+        if (xPos < viewportWidth && yPos < viewportHeight)
         {
             uint8_t paletteI{m_buffer[m_bitmapOffset + i]};
             if (m_numOfPaletteColors && paletteI >= m_numOfPaletteColors)
@@ -626,7 +626,7 @@ int BmpImage::_render8BitImage(
             uint8_t colorR{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 2]};
             uint8_t colorG{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 1]};
             uint8_t colorB{m_buffer[BMP_DIB_HEADER_OFFS + m_dibHeaderSize + paletteI * 4 + 0]};
-            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -653,14 +653,14 @@ int BmpImage::_render8BitImage(
 
 int BmpImage::_render16BitImage(
         uint8_t* pixelArray,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
     for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; i += 2)
     {
-        if (xPos < windowWidth && yPos < windowHeight)
+        if (xPos < viewportWidth && yPos < viewportHeight)
         {
             uint8_t colorR{};
             uint8_t colorG{};
@@ -699,7 +699,7 @@ int BmpImage::_render16BitImage(
                     colorA = float(bytes & m_aBitmask) / m_aBitmask * 255;
             }
 
-            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
+            Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB, colorA});
         }
 
         // If the last pixel of the line
@@ -726,21 +726,21 @@ int BmpImage::_render16BitImage(
 
 int BmpImage::_render24BitImage(
         uint8_t* pixelArray,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
     for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; i += 3)
     {
-        if (xPos < windowWidth && yPos < windowHeight)
+        if (xPos < viewportWidth && yPos < viewportHeight)
         {
             // BGR format!
             uint8_t colorR{m_buffer[m_bitmapOffset + i + 2]};
             uint8_t colorG{m_buffer[m_bitmapOffset + i + 1]};
             uint8_t colorB{m_buffer[m_bitmapOffset + i + 0]};
 
-            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+            Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB});
         }
 
         // If the last pixel of the line
@@ -766,14 +766,14 @@ int BmpImage::_render24BitImage(
 
 int BmpImage::_render32BitImage(
         uint8_t* pixelArray,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     uint_fast32_t xPos{};
     uint_fast32_t yPos{m_bitmapHeightPx - 1};
 
     for (uint_fast32_t i{}; yPos != (uint_fast32_t)-1; i += 4)
     {
-        if (xPos < windowWidth && yPos < windowHeight)
+        if (xPos < viewportWidth && yPos < viewportHeight)
         {
             uint8_t colorA{255};
             uint8_t colorR{};
@@ -813,7 +813,7 @@ int BmpImage::_render32BitImage(
                     colorA = float(bytes & m_aBitmask) / m_aBitmask * 255;
             }
 
-            Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB, colorA});
+            Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB, colorA});
         }
 
         // If the last pixel of the line
@@ -839,7 +839,7 @@ int BmpImage::_render32BitImage(
 }
 int BmpImage::render(
         SDL_Texture* texture,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     if (!m_isInitialized)
     {
@@ -847,7 +847,7 @@ int BmpImage::render(
         return 1;
     }
 
-    SDL_Rect lockRect{0, 0, (int)windowWidth, (int)windowHeight};
+    SDL_Rect lockRect{0, 0, (int)viewportWidth, (int)viewportHeight};
     uint8_t* pixelArray{};
     int pitch{};
     if (SDL_LockTexture(texture, &lockRect, (void**)&pixelArray, &pitch))
@@ -859,12 +859,12 @@ int BmpImage::render(
     int renderStatus{};
     switch (m_bitsPerPixel)
     {
-    case  1: renderStatus =  _render1BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
-    case  4: renderStatus =  _render4BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
-    case  8: renderStatus =  _render8BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
-    case 16: renderStatus = _render16BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
-    case 24: renderStatus = _render24BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
-    case 32: renderStatus = _render32BitImage(pixelArray, windowWidth, windowHeight, textureWidth); break;
+    case  1: renderStatus =  _render1BitImage(pixelArray, viewportWidth, viewportHeight); break;
+    case  4: renderStatus =  _render4BitImage(pixelArray, viewportWidth, viewportHeight); break;
+    case  8: renderStatus =  _render8BitImage(pixelArray, viewportWidth, viewportHeight); break;
+    case 16: renderStatus = _render16BitImage(pixelArray, viewportWidth, viewportHeight); break;
+    case 24: renderStatus = _render24BitImage(pixelArray, viewportWidth, viewportHeight); break;
+    case 32: renderStatus = _render32BitImage(pixelArray, viewportWidth, viewportHeight); break;
     default:
         Logger::err << "Unimplemented color depth" << Logger::End;
         SDL_UnlockTexture(texture);

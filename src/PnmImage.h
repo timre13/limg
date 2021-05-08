@@ -73,19 +73,19 @@ private:
      */
     int _renderAsciiImage(
             uint8_t* pixelArray,
-            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
+            uint32_t viewportWidth, uint32_t viewportHeight) const;
     /*
      * Binary images are rendered by getting the required number of bytes, not one at a time.
      */
     int _renderBinaryImage(
             uint8_t* pixelArray,
-            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const;
+            uint32_t viewportWidth, uint32_t viewportHeight) const;
 
 public:
     virtual int open(const std::string &filepath) override;
     virtual int render(
             SDL_Texture* texture,
-            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const override;
+            uint32_t viewportWidth, uint32_t viewportHeight) const override;
 
     virtual ~PnmImage() override;
 };

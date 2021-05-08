@@ -92,7 +92,7 @@ public:
     virtual int open(const std::string &filepath) override;
     virtual int render(
             SDL_Texture* texture,
-            uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const override;
+            uint32_t viewportWidth, uint32_t viewportHeight) const override;
 
     virtual ~GifImage() override;
 };

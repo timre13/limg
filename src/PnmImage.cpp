@@ -199,7 +199,7 @@ int PnmImage::open(const std::string& filepath)
 }
 
 int PnmImage::render(
-        SDL_Texture* texture, uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        SDL_Texture* texture, uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     if (!m_isInitialized)
     {
@@ -207,7 +207,7 @@ int PnmImage::render(
         return 1;
     }
 
-    SDL_Rect lockRect{0, 0, (int)windowWidth, (int)windowHeight};
+    SDL_Rect lockRect{0, 0, (int)viewportWidth, (int)viewportHeight};
     uint8_t* pixelArray{};
     int pitch{};
     if (SDL_LockTexture(texture, &lockRect, (void**)&pixelArray, &pitch))
@@ -222,11 +222,11 @@ int PnmImage::render(
     case PnmType::PBM_Ascii:
     case PnmType::PGM_Ascii:
     case PnmType::PPM_Ascii:
-        status = _renderAsciiImage(pixelArray, windowWidth, windowHeight, textureWidth);
+        status = _renderAsciiImage(pixelArray, viewportWidth, viewportHeight);
         break;
 
     default:
-        status = _renderBinaryImage(pixelArray, windowWidth, windowHeight, textureWidth);
+        status = _renderBinaryImage(pixelArray, viewportWidth, viewportHeight);
         break;
     }
 
@@ -236,7 +236,7 @@ int PnmImage::render(
 
 int PnmImage::_renderAsciiImage(
         uint8_t* pixelArray,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     uint32_t offset{m_headerEndOffset}; // Skip header
     uint32_t xPos{};
@@ -267,7 +267,7 @@ int PnmImage::_renderAsciiImage(
         {
             case PnmType::PBM_Ascii:
             {
-                if (xPos < windowWidth && yPos < windowHeight)
+                if (xPos < viewportWidth && yPos < viewportHeight)
                 {
                     if (!std::isspace(currByte))
                     {
@@ -278,7 +278,7 @@ int PnmImage::_renderAsciiImage(
                                 ", treating it as nonzero" << Logger::End;
 
                         uint8_t colorVal{(currByte != '0') ? 0_u8 : 255_u8};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                        Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorVal, colorVal, colorVal});
 
                         ++xPos;
                         if (xPos >= m_bitmapWidthPx)
@@ -303,10 +303,10 @@ int PnmImage::_renderAsciiImage(
                     ss.clear();
                     ss >> currValue;
 
-                    if (xPos < windowWidth && yPos < windowHeight)
+                    if (xPos < viewportWidth && yPos < viewportHeight)
                     {
                         uint8_t colorVal{uint8_t((float)currValue / m_maxPixelVal * 255)};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                        Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorVal, colorVal, colorVal});
                     }
 
                     ++xPos;
@@ -354,12 +354,12 @@ int PnmImage::_renderAsciiImage(
 
                     // If we have all the values for the color and
                     // the current pixel is visible
-                    if (valInRgbI == 2 && xPos < windowWidth && yPos < windowHeight)
+                    if (valInRgbI == 2 && xPos < viewportWidth && yPos < viewportHeight)
                     {
                         uint8_t colorR{uint8_t((float)rVal / m_maxPixelVal * 255)};
                         uint8_t colorG{uint8_t((float)gVal / m_maxPixelVal * 255)};
                         uint8_t colorB{uint8_t((float)bVal / m_maxPixelVal * 255)};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+                        Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB});
                     }
 
                     if (valInRgbI >= 2)
@@ -404,7 +404,7 @@ int PnmImage::_renderAsciiImage(
 
 int PnmImage::_renderBinaryImage(
         uint8_t* pixelArray,
-        uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth) const
+        uint32_t viewportWidth, uint32_t viewportHeight) const
 {
     uint32_t xPos{};
     uint32_t yPos{};
@@ -420,10 +420,10 @@ int PnmImage::_renderBinaryImage(
                 {
                     // XXX: Implement support for incomplete bytes at the end of lines
 
-                    if (xPos < windowWidth && yPos < windowHeight)
+                    if (xPos < viewportWidth && yPos < viewportHeight)
                     {
                         uint8_t colorVal{(currByte & (1 << (7 - i))) ? 0_u8 : 255_u8};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                        Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorVal, colorVal, colorVal});
                     }
 
                     ++xPos;
@@ -447,10 +447,10 @@ int PnmImage::_renderBinaryImage(
                 {
                     uint8_t currByte{m_buffer[offset]};
 
-                    if (xPos < windowWidth && yPos < windowHeight)
+                    if (xPos < viewportWidth && yPos < viewportHeight)
                     {
                         uint8_t colorVal{uint8_t((float)currByte / m_maxPixelVal * 255)};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                        Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorVal, colorVal, colorVal});
                     }
 
                     ++xPos;
@@ -469,10 +469,10 @@ int PnmImage::_renderBinaryImage(
                 {
                     uint16_t currWord{uint16_t((uint16_t)m_buffer[offset] << 8 | (uint16_t)m_buffer[offset + 1])};
 
-                    if (xPos < windowWidth && yPos < windowHeight)
+                    if (xPos < viewportWidth && yPos < viewportHeight)
                     {
                         uint8_t colorVal{uint8_t((float)currWord / m_maxPixelVal * 255)};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorVal, colorVal, colorVal});
+                        Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorVal, colorVal, colorVal});
                     }
 
                     ++xPos;
@@ -498,12 +498,12 @@ int PnmImage::_renderBinaryImage(
                     uint8_t gVal{m_buffer[offset + 1]};
                     uint8_t bVal{m_buffer[offset + 2]};
 
-                    if (xPos < windowWidth && yPos < windowHeight)
+                    if (xPos < viewportWidth && yPos < viewportHeight)
                     {
                         uint8_t colorR{uint8_t((float)rVal / m_maxPixelVal * 255)};
                         uint8_t colorG{uint8_t((float)gVal / m_maxPixelVal * 255)};
                         uint8_t colorB{uint8_t((float)bVal / m_maxPixelVal * 255)};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+                        Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB});
                     }
 
                     ++xPos;
@@ -524,12 +524,12 @@ int PnmImage::_renderBinaryImage(
                     uint16_t gVal{uint16_t((uint16_t)m_buffer[offset + 1] << 8 | (uint16_t)m_buffer[offset + 3])};
                     uint16_t bVal{uint16_t((uint16_t)m_buffer[offset + 4] << 8 | (uint16_t)m_buffer[offset + 5])};
 
-                    if (xPos < windowWidth && yPos < windowHeight)
+                    if (xPos < viewportWidth && yPos < viewportHeight)
                     {
                         uint8_t colorR{uint8_t((float)rVal / m_maxPixelVal * 255)};
                         uint8_t colorG{uint8_t((float)gVal / m_maxPixelVal * 255)};
                         uint8_t colorB{uint8_t((float)bVal / m_maxPixelVal * 255)};
-                        Gfx::drawPointAt(pixelArray, textureWidth, xPos, yPos, {colorR, colorG, colorB});
+                        Gfx::drawPointAt(pixelArray, m_bitmapWidthPx, xPos, yPos, {colorR, colorG, colorB});
                     }
 
                     ++xPos;
