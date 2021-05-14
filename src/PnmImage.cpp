@@ -55,56 +55,50 @@ static std::string pnmTypeToStr(PnmImage::PnmType type)
 
 int PnmImage::fetchImageSize()
 {
+    auto skipWhitespace{[this](){
+        while (m_headerEndOffset < m_fileSize && std::isspace(m_buffer[m_headerEndOffset]))
+            ++m_headerEndOffset;
+    }};
+
+    auto skipComments{[this](){
+        while (m_buffer[m_headerEndOffset] == '#')
+        {
+            while (m_headerEndOffset < m_fileSize && m_buffer[m_headerEndOffset] != '\n')
+                ++m_headerEndOffset;
+            ++m_headerEndOffset;
+        }
+    }};
+
+    auto getInt{[this](){ // -> unsigned int
+        std::stringstream ss{};
+
+        while (m_headerEndOffset < m_fileSize && !std::isspace(m_buffer[m_headerEndOffset]))
+        {
+            ss << m_buffer[m_headerEndOffset];
+            ++m_headerEndOffset;
+        }
+
+        unsigned int output;
+        ss >> output;
+        return output;
+    }};
+
     m_headerEndOffset = 2; // Skip the magic number
 
-    // Skip whitespace
-    while (m_headerEndOffset < m_fileSize && std::isspace(m_buffer[m_headerEndOffset]))
-        ++m_headerEndOffset;
+    skipWhitespace();
+    skipComments();
 
-    // Skip comments
-    while (m_buffer[m_headerEndOffset] == '#')
-    {
-        while (m_headerEndOffset < m_fileSize && m_buffer[m_headerEndOffset] != '\n')
-            ++m_headerEndOffset;
-        ++m_headerEndOffset;
-    }
-
-    std::stringstream ss{};
-
-    // Get width
-    while (m_headerEndOffset < m_fileSize && !std::isspace(m_buffer[m_headerEndOffset]))
-    {
-        ss << m_buffer[m_headerEndOffset];
-        ++m_headerEndOffset;
-    }
-    ss >> m_bitmapWidthPx;
+    m_bitmapWidthPx = getInt();
     if (m_bitmapWidthPx <= 0)
     {
         Logger::err << "Bitmap with zero width" << Logger::End;
         return 1;
     }
 
-    ss.clear(); // Clear EOF flag
+    skipWhitespace();
+    skipComments();
 
-    // Skip whitespace
-    while (m_headerEndOffset < m_fileSize && std::isspace(m_buffer[m_headerEndOffset]))
-        ++m_headerEndOffset;
-
-    // Skip comments
-    while (m_buffer[m_headerEndOffset] == '#')
-    {
-        while (m_headerEndOffset < m_fileSize && m_buffer[m_headerEndOffset] != '\n')
-            ++m_headerEndOffset;
-        ++m_headerEndOffset;
-    }
-
-    // Get height
-    while (m_headerEndOffset < m_fileSize && !std::isspace(m_buffer[m_headerEndOffset]))
-    {
-        ss << m_buffer[m_headerEndOffset];
-        ++m_headerEndOffset;
-    }
-    ss >> m_bitmapHeightPx;
+    m_bitmapHeightPx = getInt();
     if (m_bitmapHeightPx <= 0)
     {
         Logger::err << "Bitmap with zero height" << Logger::End;
@@ -118,32 +112,18 @@ int PnmImage::fetchImageSize()
         m_type == PnmType::PPM_Ascii ||
         m_type == PnmType::PPM_Bin)
     {
-        ss.clear(); // Clear EOF flag
-
-        // Skip comments
-        while (m_buffer[m_headerEndOffset] == '#')
-        {
-            while (m_headerEndOffset < m_fileSize && m_buffer[m_headerEndOffset] != '\n')
-                ++m_headerEndOffset;
-            ++m_headerEndOffset;
-        }
+        skipComments();
         ++m_headerEndOffset;
 
-        // Get the max grayscale/color value
-        while (m_headerEndOffset < m_fileSize && !std::isspace(m_buffer[m_headerEndOffset]))
-        {
-            ss << m_buffer[m_headerEndOffset];
-            ++m_headerEndOffset;
-        }
-        ++m_headerEndOffset;
-        ss >> m_maxPixelVal;
-
+        m_maxPixelVal = getInt();
         Logger::log << "Max grayscale/color value: " << m_maxPixelVal << Logger::End;
         if (m_maxPixelVal == 0)
         {
             Logger::err << "Max grayscale/color value is set to zero" << Logger::End;
             return 1;
         }
+
+        ++m_headerEndOffset;
     }
 
     return 0;
