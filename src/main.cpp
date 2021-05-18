@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_WINDOW_WIDTH  1900
 #define MAX_WINDOW_HEIGHT 1000
 #define ZOOM_STEP_PERC 5
+#define MOVE_STEP_PX 10
 
 int main(int argc, char** argv)
 {
@@ -163,6 +164,8 @@ int main(int argc, char** argv)
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
     // Set the initial zoom so that the image fits in the window
     float zoom = std::min(1.0f, std::min((float)MAX_WINDOW_WIDTH / image->getWidthPx(), (float)MAX_WINDOW_HEIGHT / image->getHeightPx()));
+    int viewportX{};
+    int viewportY{};
 
     auto updateWindowTitle{[&window, &image, &zoom](){
         SDL_SetWindowTitle(window,
@@ -235,6 +238,26 @@ int main(int argc, char** argv)
                     updateWindowTitle();
                     isRedrawNeeded = true;
                     break;
+
+                case SDLK_h: // Go left
+                    viewportX -= MOVE_STEP_PX;
+                    isRedrawNeeded = true;
+                    break;
+
+                case SDLK_j: // Go down
+                    viewportY += MOVE_STEP_PX;
+                    isRedrawNeeded = true;
+                    break;
+
+                case SDLK_k: // Go up
+                    viewportY -= MOVE_STEP_PX;
+                    isRedrawNeeded = true;
+                    break;
+
+                case SDLK_l: // Go right
+                    viewportX += MOVE_STEP_PX;
+                    isRedrawNeeded = true;
+                    break;
                 }
                 break;
 
@@ -265,11 +288,14 @@ int main(int argc, char** argv)
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderClear(renderer);
 
+            // XXX: Make the zoom center the window center, not the image center
             const int dstRectWidth{int(image->getWidthPx() * zoom)};
             const int dstRectHeight{int(image->getHeightPx() * zoom)};
             const SDL_Rect dstRect{
-                windowWidth / 2 - dstRectWidth / 2, windowHeight / 2 - dstRectHeight / 2,
-                dstRectWidth, dstRectHeight};
+                windowWidth / 2 - dstRectWidth / 2 - viewportX,
+                windowHeight / 2 - dstRectHeight / 2 - viewportY,
+                dstRectWidth,
+                dstRectHeight};
             if (SDL_RenderCopy(renderer, texture, nullptr, &dstRect))
                 Logger::err << "Failed to copy texture: " << SDL_GetError() << Logger::End;
             isRedrawNeeded = false;
