@@ -28,46 +28,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "Logger.h"
-#include <string>
-#include <SDL2/SDL.h>
+#include "Image.h"
+#include "XmlParser.h"
+#include <memory>
 
-class Image
+class SvgImage final : public Image
 {
-protected:
-    bool m_isInitialized{};
-    std::string m_filePath;
-    uint32_t m_fileSize{}; // Size of the whole file in bytes
-    uint8_t* m_buffer{};
-    uint32_t m_bitmapWidthPx{};
-    uint32_t m_bitmapHeightPx{};
+private:
+    std::unique_ptr<XmlParser> m_parser;
 
 public:
-    Image() {}
-
-    /*
-     * Opens the image file `filepath`.
-     *
-     * Returns:
-     *      0, if succeded.
-     *      Nonzero if failed.
-     */
-    virtual int open(const std::string &filepath) = 0;
-
-    /*
-     * Renders the image to an SDL texture.
-     *
-     * Returns:
-     *      0, if succeded.
-     *      Nonzero if failed.
-     */
+    virtual int open(const std::string &filepath) override;
     virtual int render(
             SDL_Texture* texture,
-            uint32_t viewportWidth, uint32_t viewportHeight) const = 0;
+            uint32_t viewportWidth, uint32_t viewportHeight) const override;
 
-    inline const std::string& getFilepath() const { return m_filePath; }
-    inline uint32_t getWidthPx() const { return m_bitmapWidthPx; };
-    inline uint32_t getHeightPx() const { return m_bitmapHeightPx; };
-
-    virtual ~Image();
 };

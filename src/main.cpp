@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BmpImage.h"
 #include "PnmImage.h"
 #include "GifImage.h"
+#include "SvgImage.h"
 #include "Logger.h"
 #include "misc.h"
 #include <SDL2/SDL.h>
@@ -75,14 +76,24 @@ int main(int argc, char** argv)
 
     std::unique_ptr<Image> image{};
     if (fileExtension.compare("bmp") == 0)
+    {
         image = std::make_unique<BmpImage>();
+    }
     else if (fileExtension.compare("pnm") == 0 ||
              fileExtension.compare("pbm") == 0 ||
              fileExtension.compare("pgm") == 0 ||
              fileExtension.compare("ppm") == 0)
+    {
       image = std::make_unique<PnmImage>();
+    }
     else if (fileExtension.compare("gif") == 0)
+    {
         image = std::make_unique<GifImage>();
+    }
+    else if (fileExtension.compare("svg") == 0)
+    {
+        image = std::make_unique<SvgImage>();
+    }
     else
     {
         Logger::err << "Unknown file extension: " << fileExtension << Logger::End;
